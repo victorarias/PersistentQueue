@@ -1,0 +1,15 @@
+C:\development\PersistentQueue\src\Tests\bin\x86\Debug\sqlite3.dll
+C:\development\PersistentQueue\src\Tests\bin\x86\Debug\FluentAssertions.dll
+C:\development\PersistentQueue\src\Tests\bin\x86\Debug\nunit.framework.dll
+C:\development\PersistentQueue\src\Tests\bin\x86\Debug\nunit.mocks.dll
+C:\development\PersistentQueue\src\Tests\bin\x86\Debug\PersistentQueue.dll
+C:\development\PersistentQueue\src\Tests\bin\x86\Debug\pnunit.framework.dll
+C:\development\PersistentQueue\src\Tests\bin\x86\Debug\PersistentQueue.pdb
+C:\development\PersistentQueue\src\Tests\bin\x86\Debug\FluentAssertions.pdb
+C:\development\PersistentQueue\src\Tests\bin\x86\Debug\FluentAssertions.xml
+C:\development\PersistentQueue\src\Tests\bin\x86\Debug\nunit.framework.xml
+C:\development\PersistentQueue\src\Tests\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\development\PersistentQueue\src\Tests\obj\x86\Debug\Tests.dll
+C:\development\PersistentQueue\src\Tests\obj\x86\Debug\Tests.pdb
+C:\development\PersistentQueue\src\Tests\bin\x86\Debug\Tests.dll
+C:\development\PersistentQueue\src\Tests\bin\x86\Debug\Tests.pdb

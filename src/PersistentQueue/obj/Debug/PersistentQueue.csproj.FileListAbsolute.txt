@@ -8,3 +8,4 @@ C:\development\PersistentQueue\src\PersistentQueue\bin\Debug\PersistentQueue.pdb
 C:\development\PersistentQueue\src\PersistentQueue\obj\Debug\ResolveAssemblyReference.cache
 C:\development\PersistentQueue\src\PersistentQueue\obj\Debug\PersistentQueue.dll
 C:\development\PersistentQueue\src\PersistentQueue\obj\Debug\PersistentQueue.pdb
+C:\development\PersistentQueue\src\PersistentQueue\bin\Debug\sqlite3.dll

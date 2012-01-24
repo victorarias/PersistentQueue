@@ -12,3 +12,4 @@ C:\development\PersistentQueue\src\Tests\obj\Debug\Tests.dll
 C:\development\PersistentQueue\src\Tests\obj\Debug\Tests.pdb
 C:\development\PersistentQueue\src\Tests\bin\Debug\PersistentQueue.dll
 C:\development\PersistentQueue\src\Tests\bin\Debug\PersistentQueue.pdb
+C:\development\PersistentQueue\src\Tests\bin\Debug\sqlite3.dll

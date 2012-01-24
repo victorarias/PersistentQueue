@@ -43,7 +43,7 @@ namespace Tests
 		public void ShouldBeAbleToDequeueAComplexObjectAfterDisposeAndRecreation()
 		{
 			var queue = new Queue(true);
-			var item = new ComplexObject();
+			var item = new ComplexObject { SomeTextProperty = "text lololo", SomeInt32Property = 123456 };
 
 			queue.Enqueue(item);
 
@@ -59,8 +59,8 @@ namespace Tests
 		[Serializable]
 		public class ComplexObject
 		{
-			public string SomeTextProperty = "some text value";
-			public int SomeInt32Property = 15;
+			public string SomeTextProperty { get; set; }
+			public int SomeInt32Property { get; set; }
 
 			public override bool Equals(object obj)
 			{

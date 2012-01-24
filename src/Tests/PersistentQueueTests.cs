@@ -14,7 +14,7 @@ namespace Tests
 		[Test]
 		public void ShouldQueueAndDequeueString()
 		{
-			using (var queue = new Queue(true))
+			using (var queue = Queue.CreateNew())
 			{
 				var item = "woot";
 
@@ -26,9 +26,23 @@ namespace Tests
 		}
 
 		[Test]
+		public void ShouldQueueAndDequeueInt()
+		{
+			using (var queue = Queue.CreateNew())
+			{
+				var item = 1;
+
+				queue.Enqueue(item);
+
+				var dequeued = queue.Dequeue<int>();
+				dequeued.Should().Be(item);
+			}
+		}
+
+		[Test]
 		public void ShouldQueueAndPeekString()
 		{
-			using (var queue = new Queue(true))
+			using (var queue = Queue.CreateNew())
 			{
 				var item = "woot";
 
@@ -42,13 +56,13 @@ namespace Tests
 		[Test]
 		public void ShouldBeAbleToDequeueAComplexObjectAfterDisposeAndRecreation()
 		{
-			var queue = new Queue(true);
+			var queue = Queue.CreateNew();
 			var item = new ComplexObject { SomeTextProperty = "text lololo", SomeInt32Property = 123456 };
 
 			queue.Enqueue(item);
 
-			queue.Dispose(); queue = null;
-			using (var newQueue = new Queue())
+			queue.Dispose();
+			using (var newQueue = Queue.Create(queue.Name))
 			{
 				var dequeueItem = newQueue.Dequeue();
 

@@ -13,7 +13,36 @@ namespace PersistentQueue
 		private SQLite.SQLiteConnection store;
 		private bool disposed = false;
 
-		public Queue()
+		public string Name { get; private set; }
+
+		private static Queue @default;
+		public static Queue Default
+		{
+			get
+			{
+				if (null == @default)
+					@default = new Queue();
+
+				return @default;
+			}
+		}
+
+		public static Queue CreateNew()
+		{
+			return new Queue(true);
+		}
+
+		public static Queue Create(string name)
+		{
+			return new Queue(name);
+		}
+
+		private Queue(string name)
+		{
+			Initialize(name);
+		}
+
+		private Queue()
 		{
 			Initialize();
 		}
@@ -27,7 +56,7 @@ namespace PersistentQueue
 			}
 		}
 
-		public Queue(bool reset)
+		private Queue(bool reset)
 		{
 			if (reset && File.Exists(dbName_))
 				File.Delete(dbName_);
@@ -35,9 +64,10 @@ namespace PersistentQueue
 			Initialize();
 		}
 
-		private void Initialize()
+		private void Initialize(string name = dbName_)
 		{
-			store = new SQLiteConnection(dbName_);
+			Name = name;
+			store = new SQLiteConnection(name);
 			store.CreateTable<QueueItem>();
 		}
 

@@ -1,5 +1,6 @@
 ﻿[Oo]bj/
 [Bb]in/
+obj/
 *.suo
 *.user
 /TestResults

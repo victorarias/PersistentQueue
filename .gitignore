@@ -1,5 +1,7 @@
-﻿bin
-obj
-
-bin/*
-/bin/*
+﻿[Oo]bj/
+[Bb]in/
+*.suo
+*.user
+/TestResults
+*.vspscc
+*.vssscc

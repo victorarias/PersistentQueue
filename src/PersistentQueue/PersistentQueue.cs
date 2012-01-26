@@ -107,11 +107,18 @@ namespace PersistentQueue
 		{
 			lock (store)
 			{
-				var item = store.Table<QueueItem>().OrderBy(a => a.Id).First();
+				var item = store.Table<QueueItem>().OrderBy(a => a.Id).FirstOrDefault();
 
-				store.Delete(item);
+				if (null != item)
+				{
+					store.Delete(item);
 
-				return item.ToObject();
+					return item.ToObject();
+				}
+				else
+				{
+					return null;
+				}
 			}
 		}
 
@@ -124,7 +131,9 @@ namespace PersistentQueue
 		{
 			lock (store)
 			{
-				return store.Table<QueueItem>().First().ToObject();
+				var item = store.Table<QueueItem>().FirstOrDefault();
+				
+				return null == item ? null : item.ToObject();
 			}
 		}
 

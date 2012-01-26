@@ -73,18 +73,29 @@ namespace Tests
 		[Test]
 		public void ShouldReturnSameQueueIfTheNameIsEqualToAnother()
 		{
-			var queue1 = Queue.Create("queue");
-			var queue2 = Queue.Create("queue");
-
-			queue1.Should().BeSameAs(queue2);
+			using (var queue1 = Queue.Create("queue"))
+			using (var queue2 = Queue.Create("queue"))
+			{
+				queue1.Should().BeSameAs(queue2);
+			}
 		}
 
 		[Test]
 		public void ShouldThrownExceptionTryingToCreateNewThatAlreadyExists()
 		{
-			var queue1 = Queue.Create("queue");
-			
-			Assert.Throws<InvalidOperationException>(() => Queue.CreateNew("queue"));
+			using (var queue1 = Queue.Create("queue"))
+			{
+				Assert.Throws<InvalidOperationException>(() => Queue.CreateNew("queue"));
+			}
+		}
+
+		[Test]
+		public void ShouldReturnNullWhenQueueIsEmpty()
+		{
+			using (var queue = Queue.CreateNew())
+			{
+				queue.Dequeue().Should().BeNull();
+			}
 		}
 
 		[Serializable]

@@ -9,62 +9,86 @@ namespace PersistentQueue
 {
 	public class Queue : IDisposable
 	{
-		private const string dbName_ = "persistentQueue";
+		#region Private Properties
+
+		private const string defaultQueueName = "persistentQueue";
 		private SQLite.SQLiteConnection store;
 		private bool disposed = false;
 
+		#endregion
+
+		#region Public Properties
+
 		public string Name { get; private set; }
 
-		private static Queue @default;
+		#endregion
+
+		#region Static
+
+		private static Dictionary<string, Queue> queues = new Dictionary<string, Queue>();
+
 		public static Queue Default
 		{
 			get
 			{
-				if (null == @default)
-					@default = new Queue();
-
-				return @default;
+				return Create(defaultQueueName);
 			}
 		}
 
 		public static Queue CreateNew()
 		{
-			return new Queue(true);
+			return CreateNew(defaultQueueName);
+		}
+
+		public static Queue CreateNew(string name)
+		{
+			lock (queues)
+			{
+				if (queues.ContainsKey(name))
+					throw new InvalidOperationException("there is already a queue with that name");
+
+				var queue = new Queue(name, true);
+				queues.Add(name, queue);
+
+				return queue;
+			}
 		}
 
 		public static Queue Create(string name)
 		{
-			return new Queue(name);
+			lock (queues)
+			{
+				Queue queue;
+
+				if (!queues.TryGetValue(name, out queue))
+				{
+					queue = new Queue(name);
+					queues.Add(name, queue);
+				}
+
+				return queue;
+			}
 		}
 
-		private Queue(string name)
+		#endregion
+
+		private Queue(string name, bool reset = false)
 		{
+			if (reset && File.Exists(defaultQueueName))
+				File.Delete(defaultQueueName);
+
 			Initialize(name);
-		}
-
-		private Queue()
-		{
-			Initialize();
 		}
 
 		~Queue()
 		{
 			if (!disposed)
 			{
-				disposed = true;
-				store.Dispose();
+				this.Dispose();
 			}
 		}
 
-		private Queue(bool reset)
-		{
-			if (reset && File.Exists(dbName_))
-				File.Delete(dbName_);
-
-			Initialize();
-		}
-
-		private void Initialize(string name = dbName_)
+		private void Initialize(string name)
 		{
 			Name = name;
 			store = new SQLiteConnection(name);
@@ -112,12 +136,15 @@ namespace PersistentQueue
 		public void Dispose()
 		{
 			if (!disposed)
-			{
-				disposed = true;
-				store.Dispose();
+				lock (queues)
+				{
+					disposed = true;
 
-				GC.SuppressFinalize(this);
-			}
+					queues.Remove(this.Name);
+					store.Dispose();
+
+					GC.SuppressFinalize(this);
+				}
 		}
 	}
 

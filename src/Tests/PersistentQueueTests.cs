@@ -70,6 +70,23 @@ namespace Tests
 			}
 		}
 
+		[Test]
+		public void ShouldReturnSameQueueIfTheNameIsEqualToAnother()
+		{
+			var queue1 = Queue.Create("queue");
+			var queue2 = Queue.Create("queue");
+
+			queue1.Should().BeSameAs(queue2);
+		}
+
+		[Test]
+		public void ShouldThrownExceptionTryingToCreateNewThatAlreadyExists()
+		{
+			var queue1 = Queue.Create("queue");
+			
+			Assert.Throws<InvalidOperationException>(() => Queue.CreateNew("queue"));
+		}
+
 		[Serializable]
 		public class ComplexObject
 		{

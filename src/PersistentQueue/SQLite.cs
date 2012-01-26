@@ -1715,7 +1715,7 @@ namespace SQLite
 			{
 				var mem = (MemberExpression)expr;
 
-				if (mem.Expression.NodeType == ExpressionType.Parameter)
+				if (mem.Expression != null && mem.Expression.NodeType == ExpressionType.Parameter)
 				{
 					//
 					// This is a column of our table, output just the column name

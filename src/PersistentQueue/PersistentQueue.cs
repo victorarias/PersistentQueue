@@ -103,17 +103,23 @@ namespace PersistentQueue
 			}
 		}
 
-		public object Dequeue()
+		public QueueItem Dequeue(bool remove = true, int invisibleTimeout = 30000)
 		{
 			lock (store)
 			{
-				var item = store.Table<QueueItem>().OrderBy(a => a.Id).FirstOrDefault();
+				var item = GetNextItem();
 
 				if (null != item)
 				{
-					store.Delete(item);
+					if (remove)
+						store.Delete(item);
+					else
+					{
+						item.InvisibleUntil = DateTime.Now.AddMilliseconds(invisibleTimeout);
+						store.Update(item);
+					}
 
-					return item.ToObject();
+					return item;
 				}
 				else
 				{
@@ -122,16 +128,16 @@ namespace PersistentQueue
 			}
 		}
 
-		public T Dequeue<T>()
+		public void Delete(QueueItem item)
 		{
-			return (T)Dequeue();
+			store.Delete(item);
 		}
 
 		public object Peek()
 		{
 			lock (store)
 			{
-				var item = store.Table<QueueItem>().FirstOrDefault();
+				var item = GetNextItem();
 				
 				return null == item ? null : item.ToObject();
 			}
@@ -155,17 +161,34 @@ namespace PersistentQueue
 					GC.SuppressFinalize(this);
 				}
 		}
+
+		private QueueItem GetNextItem()
+		{
+			return store.Table<QueueItem>()
+					.Where(a => DateTime.Now > a.InvisibleUntil)
+					.OrderBy(a => a.Id)
+					.FirstOrDefault();
+		}
 	}
 
 	public class QueueItem
 	{
 		[PrimaryKey]
 		public long Id { get; private set; }
+
+		[Indexed]
+		public DateTime InvisibleUntil { get; set; }
+
 		public byte[] Message { get; set; }
 
 		public QueueItem()
 		{
 			Id = DateTime.Now.Ticks;
+		}
+
+		public T CastTo<T>()
+		{
+			return (T)this.ToObject();
 		}
 	}
 }

@@ -5,6 +5,8 @@ using System.Linq;
 using NUnit.Framework;
 using PersistentQueue;
 using FluentAssertions;
+using System.Threading;
+using SQLite;
 
 namespace Tests
 {
@@ -20,7 +22,7 @@ namespace Tests
 
 				queue.Enqueue(item);
 
-				string dequeued = queue.Dequeue<string>();
+				string dequeued = queue.Dequeue().CastTo<string>();
 				dequeued.Should().Be(item);
 			}
 		}
@@ -34,7 +36,7 @@ namespace Tests
 
 				queue.Enqueue(item);
 
-				var dequeued = queue.Dequeue<int>();
+				var dequeued = queue.Dequeue().CastTo<int>();
 				dequeued.Should().Be(item);
 			}
 		}
@@ -54,6 +56,20 @@ namespace Tests
 		}
 
 		[Test]
+		public void ShouldHideInvisibleItemFromPeek()
+		{
+			using (var queue = Queue.CreateNew())
+			{
+				var item = "woot";
+
+				queue.Enqueue(item);
+				queue.Dequeue(false, 1000);
+
+				var peeked = queue.Peek().Should().BeNull();
+			}
+		}
+
+		[Test]
 		public void ShouldBeAbleToDequeueAComplexObjectAfterDisposeAndRecreation()
 		{
 			var queue = Queue.CreateNew();
@@ -66,7 +82,7 @@ namespace Tests
 			{
 				var dequeueItem = newQueue.Dequeue();
 
-				dequeueItem.Should().Equals(item);
+				dequeueItem.CastTo<ComplexObject>().Should().Equals(item);
 			}
 		}
 
@@ -94,6 +110,54 @@ namespace Tests
 		{
 			using (var queue = Queue.CreateNew())
 			{
+				queue.Dequeue().Should().BeNull();
+			}
+		}
+
+		[Test]
+		public void ShouldHideInvisibleMessages()
+		{
+			using (var queue = Queue.CreateNew())
+			{
+				queue.Enqueue("oi");
+				queue.Dequeue(false, 1000);
+
+				var item = queue.Dequeue();
+
+				item.Should().BeNull();
+			}
+		}
+
+		[Test]
+		public void ShouldHideInvisibleMessagesUntilTimeout()
+		{
+			//this test, and any other that depends on the Thread.Sleep, can eventually fail...
+			//run it again to be sure it is broken
+			using (var queue = Queue.CreateNew())
+			{
+				queue.Enqueue("oi");
+				queue.Dequeue(false, 1000);
+				
+				Thread.Sleep(1500);
+
+				var item = queue.Dequeue();
+				
+				item.Should().NotBeNull();
+			}
+		}
+
+		[Test]
+		public void ShouldRemoveInvisibleItemWhenDeleted()
+		{
+			using (var queue = Queue.CreateNew())
+			{
+				queue.Enqueue("oi");
+				var item = queue.Dequeue(false, 100);
+
+				queue.Delete(item);
+
+				Thread.Sleep(1000);
+
 				queue.Dequeue().Should().BeNull();
 			}
 		}

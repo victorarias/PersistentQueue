@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PersistentQueue", "PersistentQueue\PersistentQueue.csproj", "{0FC1F6B5-D900-49D3-BCC7-9723C3FC2933}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{E347F373-C9E1-407B-9732-BAA355ACEA99}"
@@ -15,16 +15,16 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{0FC1F6B5-D900-49D3-BCC7-9723C3FC2933}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0FC1F6B5-D900-49D3-BCC7-9723C3FC2933}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0FC1F6B5-D900-49D3-BCC7-9723C3FC2933}.Debug|x86.ActiveCfg = Debug|x86
-		{0FC1F6B5-D900-49D3-BCC7-9723C3FC2933}.Debug|x86.Build.0 = Debug|x86
+		{0FC1F6B5-D900-49D3-BCC7-9723C3FC2933}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0FC1F6B5-D900-49D3-BCC7-9723C3FC2933}.Debug|x86.Build.0 = Debug|Any CPU
 		{0FC1F6B5-D900-49D3-BCC7-9723C3FC2933}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0FC1F6B5-D900-49D3-BCC7-9723C3FC2933}.Release|Any CPU.Build.0 = Release|Any CPU
 		{0FC1F6B5-D900-49D3-BCC7-9723C3FC2933}.Release|x86.ActiveCfg = Release|x86
 		{0FC1F6B5-D900-49D3-BCC7-9723C3FC2933}.Release|x86.Build.0 = Release|x86
 		{E347F373-C9E1-407B-9732-BAA355ACEA99}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E347F373-C9E1-407B-9732-BAA355ACEA99}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E347F373-C9E1-407B-9732-BAA355ACEA99}.Debug|x86.ActiveCfg = Debug|x86
-		{E347F373-C9E1-407B-9732-BAA355ACEA99}.Debug|x86.Build.0 = Debug|x86
+		{E347F373-C9E1-407B-9732-BAA355ACEA99}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E347F373-C9E1-407B-9732-BAA355ACEA99}.Debug|x86.Build.0 = Debug|Any CPU
 		{E347F373-C9E1-407B-9732-BAA355ACEA99}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E347F373-C9E1-407B-9732-BAA355ACEA99}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E347F373-C9E1-407B-9732-BAA355ACEA99}.Release|x86.ActiveCfg = Release|x86

@@ -6,3 +6,5 @@ obj/
 /TestResults
 *.vspscc
 *.vssscc
+!/src/packages/repositories.config
+/src/packages

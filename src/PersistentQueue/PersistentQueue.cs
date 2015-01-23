@@ -11,15 +11,15 @@ namespace PersistentQueue
 	{
 		#region Private Properties
 
-		private const string defaultQueueName = "persistentQueue";
-		private SQLite.SQLiteConnection store;
-		private bool disposed = false;
+		protected const string defaultQueueName = "persistentQueue";
+        protected SQLite.SQLiteConnection store;
+        protected bool disposed = false;
 
 		#endregion
 
 		#region Public Properties
 
-		public string Name { get; private set; }
+        public string Name { get; protected set; }
 
 		#endregion
 
@@ -72,7 +72,7 @@ namespace PersistentQueue
 
 		#endregion
 
-		private Queue(string name, bool reset = false)
+        protected Queue(string name, bool reset = false)
 		{
 			if (reset && File.Exists(defaultQueueName))
 				File.Delete(defaultQueueName);
@@ -88,7 +88,7 @@ namespace PersistentQueue
 			}
 		}
 
-		private void Initialize(string name)
+        protected void Initialize(string name)
 		{
 			Name = name;
 			store = new SQLiteConnection(name);
@@ -111,13 +111,14 @@ namespace PersistentQueue
 
 				if (null != item)
 				{
-					if (remove)
-						store.Delete(item);
-					else
-					{
-						item.InvisibleUntil = DateTime.Now.AddMilliseconds(invisibleTimeout);
-						store.Update(item);
-					}
+                    if (remove)
+                    {
+                        this.Delete(item);
+                    }
+                    else
+                    {
+                        this.Invalidate(item, invisibleTimeout);
+                    }
 
 					return item;
 				}
@@ -128,7 +129,13 @@ namespace PersistentQueue
 			}
 		}
 
-		public void Delete(QueueItem item)
+        public virtual void Invalidate(QueueItem item, int invisibleTimeout = 30000)
+        {
+            item.InvisibleUntil = DateTime.Now.AddMilliseconds(invisibleTimeout);
+            store.Update(item);
+        }
+
+		public virtual void Delete(QueueItem item)
 		{
 			store.Delete(item);
 		}
@@ -162,7 +169,7 @@ namespace PersistentQueue
 				}
 		}
 
-		private QueueItem GetNextItem()
+        protected QueueItem GetNextItem()
 		{
 			return store.Table<QueueItem>()
 					.Where(a => DateTime.Now > a.InvisibleUntil)
@@ -174,7 +181,7 @@ namespace PersistentQueue
 	public class QueueItem
 	{
 		[PrimaryKey]
-		public long Id { get; private set; }
+		public long Id { get; protected set; }
 
 		[Indexed]
 		public DateTime InvisibleUntil { get; set; }

@@ -137,8 +137,10 @@ namespace Tests
 			{
 				queue.Enqueue("oi");
 				queue.Dequeue(false, 1000);
-				
-				Thread.Sleep(1500);
+
+                //Thread.Sleep isn't particularly precise so give this one
+                //some breathing room. 1.5 Sec would fail ~50% of the time
+				Thread.Sleep(2000);
 
 				var item = queue.Dequeue();
 				

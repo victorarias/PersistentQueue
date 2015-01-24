@@ -176,11 +176,15 @@ namespace PersistentQueue
 
         protected QueueItemType GetNextItem()
 		{
-            return store.Table<QueueItemType>()
-					.Where(a => DateTime.Now > a.InvisibleUntil)
-					.OrderBy(a => a.Id)
-					.FirstOrDefault();
+            return this.NextItemQuery().FirstOrDefault();
 		}
+
+        protected virtual TableQuery<QueueItemType> NextItemQuery()
+        {
+            return store.Table<QueueItemType>()
+                     .Where(a => DateTime.Now > a.InvisibleUntil)
+                     .OrderBy(a => a.Id);
+        }
 	}
 
     [Table("PersistantQueueItem")]

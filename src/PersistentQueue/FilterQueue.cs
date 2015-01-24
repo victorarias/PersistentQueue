@@ -14,17 +14,50 @@ namespace PersistentQueue
             
 		}
 
-        public virtual void Delete(FilterQueueItem item, bool removeFromDB = false)
+        /// <summary>
+        /// Removes the record from the queue without removing it from the database
+        /// </summary>
+        public override void Delete(FilterQueueItem item)
+        {
+            this.Delete(item, false);
+        }
+
+        /// <summary>
+        /// Removes the record from the queue, optionally removing it from the database.
+        /// </summary>
+        public virtual void Delete(FilterQueueItem item, bool removeFromDB)
         {
             if (removeFromDB)
             {
-                store.Delete(item);
+                base.Delete(item);
             }
             else
             {
                 item.DeleteTime = DateTime.Now;
                 store.Update(item);
             }
+        }
+
+        protected virtual void PurgeDeletedItems()
+        {
+            //store.
+        }
+
+        protected virtual TableQuery<FilterQueueItem> ActiveItemQuery()
+        {
+            return store.Table<FilterQueueItem>()
+                     .Where(a => null == a.DeleteTime);
+        }
+
+        protected virtual TableQuery<FilterQueueItem> DeletedItemQuery()
+        {
+            return store.Table<FilterQueueItem>()
+                     .Where(a => null != a.DeleteTime);
+        }
+
+        protected override TableQuery<FilterQueueItem> NextItemQuery()
+        {
+            return base.NextItemQuery().Where(a => null == a.DeleteTime);
         }
     }
 

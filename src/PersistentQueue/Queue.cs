@@ -14,4 +14,13 @@ namespace PersistentQueue
             
 		}
     }
+
+    [Table("QueueItem")]
+    public class QueueItem : PersistantQueueItem
+    {        
+        public QueueItem()
+        {
+            Id = DateTime.Now.Ticks;
+        }
+    }
 }

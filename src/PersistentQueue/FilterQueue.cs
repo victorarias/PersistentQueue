@@ -39,7 +39,6 @@ namespace PersistentQueue
         public FilterQueueItem()
         {
             var now = DateTime.Now;
-            //this.Id = now.Ticks;
             this.CreateTime = now;
             this.DeleteTime = null;
         }

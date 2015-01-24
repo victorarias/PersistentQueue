@@ -4,10 +4,14 @@ using System.Linq;
 using System.Text;
 using SQLite;
 using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace PersistentQueue
 {
-	public class PersistantQueue<QueueItemType> : IDisposable where QueueItemType : QueueItem, new()
+    /// <summary>
+    /// Abstract class
+    /// </summary>
+    public class PersistantQueue<QueueItemType> : IDisposable where QueueItemType : PersistantQueueItem, new()
 	{
 		#region Private Properties
 
@@ -46,7 +50,7 @@ namespace PersistentQueue
 			{
 				if (queues.ContainsKey(name))
 					throw new InvalidOperationException("there is already a queue with that name");
-
+                
 				var queue = new PersistantQueue<QueueItemType>(name, true);
 				queues.Add(name, queue);
 
@@ -81,6 +85,7 @@ namespace PersistentQueue
 		}
 
         ~PersistantQueue()
+
 		{
 			if (!disposed)
 			{
@@ -178,8 +183,8 @@ namespace PersistentQueue
 		}
 	}
 
-    [Table("QueueItem")]
-    public class QueueItem
+    [Table("PersistantQueueItem")]
+    public abstract class PersistantQueueItem
     {
         [PrimaryKey]
         [AutoIncrement]
@@ -190,14 +195,32 @@ namespace PersistentQueue
 
         public byte[] Message { get; set; }
 
-        public QueueItem()
-        {
-            //Id = DateTime.Now.Ticks;
-        }
+        public PersistantQueueItem() { }
 
         public T CastTo<T>()
         {
             return (T)this.ToObject();
+        }
+    }
+
+    public static class Extensions
+    {
+        public static QueueItemType ToQueueItem<QueueItemType>(this object obj) where QueueItemType : PersistantQueueItem, new()
+        {
+            using (var stream = new MemoryStream())
+            {
+                new BinaryFormatter().Serialize(stream, obj);
+
+                return new QueueItemType { Message = stream.ToArray() };
+            }
+        }
+
+        public static object ToObject<QueueItemType>(this QueueItemType item) where QueueItemType : PersistantQueueItem
+        {
+            using (var stream = new MemoryStream(item.Message))
+            {
+                return new BinaryFormatter().Deserialize(stream);
+            }
         }
     }
 }

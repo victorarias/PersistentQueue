@@ -9,16 +9,16 @@ namespace PersistentQueue
 {
 	public static class Extensions
 	{
-		public static QueueItem ToQueueItem(this object obj)
+        public static QueueItemType ToQueueItem<QueueItemType>(this object obj) where QueueItemType : QueueItem , new()
 		{
 			using(var stream = new MemoryStream()){
 				new BinaryFormatter().Serialize(stream, obj);
-				
-				return new QueueItem { Message = stream.ToArray() };
+
+                return new QueueItemType { Message = stream.ToArray() };
 			}
 		}
 
-		public static object ToObject(this QueueItem item)
+        public static object ToObject<QueueItemType>(this QueueItemType item) where QueueItemType : QueueItem
 		{
 			using(var stream = new MemoryStream(item.Message))
 			{

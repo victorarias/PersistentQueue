@@ -6,15 +6,29 @@ using SQLite;
 
 namespace PersistentQueue
 {
-    class FilterQueue : Queue
+    class FilterQueue : PersistantQueue<FilterQueueItem>
     {
         protected FilterQueue(string name, bool reset = false)
             : base(name, reset)
 		{
             
 		}
+
+        public virtual void Delete(FilterQueueItem item, bool removeFromDB = false)
+        {
+            if (removeFromDB)
+            {
+                store.Delete(item);
+            }
+            else
+            {
+                item.DeleteTime = DateTime.Now;
+                store.Update(item);
+            }
+        }
     }
 
+    [Table("FilterQueueItem")]
     public class FilterQueueItem : QueueItem
     {
         [Indexed]
@@ -25,7 +39,7 @@ namespace PersistentQueue
         public FilterQueueItem()
         {
             var now = DateTime.Now;
-            this.Id = now.Ticks;
+            //this.Id = now.Ticks;
             this.CreateTime = now;
             this.DeleteTime = null;
         }

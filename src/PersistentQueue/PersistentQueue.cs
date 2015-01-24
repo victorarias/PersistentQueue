@@ -7,7 +7,7 @@ using System.IO;
 
 namespace PersistentQueue
 {
-	public class Queue : IDisposable
+	public class PersistantQueue<QueueItemType> : IDisposable where QueueItemType : QueueItem, new()
 	{
 		#region Private Properties
 
@@ -25,9 +25,9 @@ namespace PersistentQueue
 
 		#region Static
 
-		private static Dictionary<string, Queue> queues = new Dictionary<string, Queue>();
+        private static Dictionary<string, PersistantQueue<QueueItemType>> queues = new Dictionary<string, PersistantQueue<QueueItemType>>();
 
-		public static Queue Default
+        public static PersistantQueue<QueueItemType> Default
 		{
 			get
 			{
@@ -35,34 +35,34 @@ namespace PersistentQueue
 			}
 		}
 
-		public static Queue CreateNew()
+        public static PersistantQueue<QueueItemType> CreateNew()
 		{
 			return CreateNew(defaultQueueName);
 		}
 
-		public static Queue CreateNew(string name)
+        public static PersistantQueue<QueueItemType> CreateNew(string name)
 		{
 			lock (queues)
 			{
 				if (queues.ContainsKey(name))
 					throw new InvalidOperationException("there is already a queue with that name");
 
-				var queue = new Queue(name, true);
+				var queue = new PersistantQueue<QueueItemType>(name, true);
 				queues.Add(name, queue);
 
 				return queue;
 			}
 		}
 
-		public static Queue Create(string name)
+        public static PersistantQueue<QueueItemType> Create(string name)
 		{
 			lock (queues)
 			{
-				Queue queue;
+                PersistantQueue<QueueItemType> queue;
 
 				if (!queues.TryGetValue(name, out queue))
 				{
-					queue = new Queue(name);
+					queue = new PersistantQueue<QueueItemType>(name);
 					queues.Add(name, queue);
 				}
 
@@ -72,7 +72,7 @@ namespace PersistentQueue
 
 		#endregion
 
-        protected Queue(string name, bool reset = false)
+        protected PersistantQueue(string name, bool reset = false)
 		{
 			if (reset && File.Exists(defaultQueueName))
 				File.Delete(defaultQueueName);
@@ -80,7 +80,7 @@ namespace PersistentQueue
 			Initialize(name);
 		}
 
-		~Queue()
+        ~PersistantQueue()
 		{
 			if (!disposed)
 			{
@@ -92,18 +92,18 @@ namespace PersistentQueue
 		{
 			Name = name;
 			store = new SQLiteConnection(name);
-			store.CreateTable<QueueItem>();
+            store.CreateTable<QueueItemType>();
 		}
 
 		public void Enqueue(object obj)
 		{
 			lock (store)
 			{
-				store.Insert(obj.ToQueueItem());
+                store.Insert(obj.ToQueueItem<QueueItemType>());
 			}
 		}
 
-		public QueueItem Dequeue(bool remove = true, int invisibleTimeout = 30000)
+        public QueueItemType Dequeue(bool remove = true, int invisibleTimeout = 30000)
 		{
 			lock (store)
 			{
@@ -124,18 +124,18 @@ namespace PersistentQueue
 				}
 				else
 				{
-					return null;
+					return default(QueueItemType);
 				}
 			}
 		}
 
-        public virtual void Invalidate(QueueItem item, int invisibleTimeout = 30000)
+        public virtual void Invalidate(QueueItemType item, int invisibleTimeout = 30000)
         {
             item.InvisibleUntil = DateTime.Now.AddMilliseconds(invisibleTimeout);
             store.Update(item);
         }
 
-		public virtual void Delete(QueueItem item)
+        public virtual void Delete(QueueItemType item)
 		{
 			store.Delete(item);
 		}
@@ -169,33 +169,35 @@ namespace PersistentQueue
 				}
 		}
 
-        protected QueueItem GetNextItem()
+        protected QueueItemType GetNextItem()
 		{
-			return store.Table<QueueItem>()
+            return store.Table<QueueItemType>()
 					.Where(a => DateTime.Now > a.InvisibleUntil)
 					.OrderBy(a => a.Id)
 					.FirstOrDefault();
 		}
 	}
 
-	public class QueueItem
-	{
-		[PrimaryKey]
-		public long Id { get; protected set; }
+    [Table("QueueItem")]
+    public class QueueItem
+    {
+        [PrimaryKey]
+        [AutoIncrement]
+        public long Id { get; protected set; }
 
-		[Indexed]
-		public DateTime InvisibleUntil { get; set; }
+        [Indexed]
+        public DateTime InvisibleUntil { get; set; }
 
-		public byte[] Message { get; set; }
+        public byte[] Message { get; set; }
 
-		public QueueItem()
-		{
-			Id = DateTime.Now.Ticks;
-		}
+        public QueueItem()
+        {
+            //Id = DateTime.Now.Ticks;
+        }
 
-		public T CastTo<T>()
-		{
-			return (T)this.ToObject();
-		}
-	}
+        public T CastTo<T>()
+        {
+            return (T)this.ToObject();
+        }
+    }
 }

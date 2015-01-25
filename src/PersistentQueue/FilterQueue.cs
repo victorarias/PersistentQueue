@@ -38,10 +38,56 @@ namespace PersistentQueue
             }
         }
 
-        protected virtual void PurgeDeletedItems()
+        /// <summary>
+        /// Permanently deletes items where a DeleteTime is set.
+        /// </summary>
+        public virtual void PurgeDeletedItems()
         {
-            //store.
+            lock (store)
+            {
+                var map = this.store.GetMapping(typeof(FilterQueueItem));
+                var query = string.Format("delete from \"{0}\" where \"DeleteTime\" IS NOT NULL", map.TableName);
+                this.store.Execute(query);
+            }
         }
+
+        public virtual List<FilterQueueItem> AllItems(DateTime? since = null)
+        {
+            var query = this.store.Table<FilterQueueItem>();
+
+            if (since != null)
+            {
+                query = query.Where(a => a.CreateTime >= (DateTime)since); 
+            }
+
+            return query.ToList();
+        }
+
+        public virtual List<FilterQueueItem> ActiveItems(DateTime? since = null)
+        {
+            var query = this.ActiveItemQuery();
+
+            if (since != null)
+            {
+                query = query.Where(a => a.CreateTime >= (DateTime)since);
+            }
+
+            return query.ToList();
+        }
+
+        public virtual List<FilterQueueItem> DeletedItems(DateTime? since = null)
+        {
+            var query = this.DeletedItemQuery();
+
+            if (since != null)
+            {
+                query = query.Where(a => a.CreateTime >= (DateTime)since);
+            }
+
+            return query.ToList();
+        }
+
+        #region Filtering Queries
 
         protected virtual TableQuery<FilterQueueItem> ActiveItemQuery()
         {
@@ -59,10 +105,12 @@ namespace PersistentQueue
         {
             return base.NextItemQuery().Where(a => null == a.DeleteTime);
         }
+
+        #endregion
     }
 
     [Table("FilterQueueItem")]
-    public class FilterQueueItem : QueueItem
+    public class FilterQueueItem : PersistantQueueItem
     {
         [Indexed]
         public DateTime CreateTime { get; set; }

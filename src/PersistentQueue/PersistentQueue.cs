@@ -93,7 +93,17 @@ namespace PersistentQueue
 			}
 		}
 
-        protected void Initialize(string name)
+        public virtual PersistantQueue<QueueItemType> Duplicate(string newName = null)
+        {
+            lock (store)
+            {
+                newName = newName ?? this.Name + ".New";
+                File.Copy(this.Name, newName);
+                return CreateNew(newName);
+            }
+        }
+
+        protected virtual void Initialize(string name)
 		{
 			Name = name;
 			store = new SQLiteConnection(name);

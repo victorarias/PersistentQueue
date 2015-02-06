@@ -8,10 +8,39 @@ using System.Runtime.Serialization.Formatters.Binary;
 
 namespace PersistentQueue
 {
+    public interface IPersistantQueueItem
+    {
+        long Id { get; }
+        DateTime InvisibleUntil { get; set; }
+        byte[] Message { get; set; }
+        T CastTo<T>();
+    }
+
+
     /// <summary>
     /// Abstract class
     /// </summary>
-    public class PersistantQueue<QueueItemType> : IDisposable where QueueItemType : PersistantQueueItem, new()
+    public interface IPersistantQueue<out QueueItemType> : IDisposable where QueueItemType : IPersistantQueueItem, new()
+    {
+        #region Public Properties
+
+        string Name { get; }
+
+        #endregion
+
+        IPersistantQueue<QueueItemType> Duplicate(string newName = null);
+        void Enqueue(object obj);
+        QueueItemType Dequeue(bool remove = true, int invisibleTimeout = 30000);
+        void Invalidate(IPersistantQueueItem item, int invisibleTimeout = 30000);
+        void Delete(IPersistantQueueItem item);
+        object Peek();
+        T Peek<T>();
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public class PersistantQueue<QueueItemType> : IPersistantQueue<QueueItemType> where QueueItemType : PersistantQueueItem, new()
 	{
 		#region Private Properties
 
@@ -93,7 +122,7 @@ namespace PersistentQueue
 			}
 		}
 
-        public virtual PersistantQueue<QueueItemType> Duplicate(string newName = null)
+        public virtual IPersistantQueue<QueueItemType> Duplicate(string newName = null)
         {
             lock (store)
             {
@@ -144,13 +173,13 @@ namespace PersistentQueue
 			}
 		}
 
-        public virtual void Invalidate(QueueItemType item, int invisibleTimeout = 30000)
+        public virtual void Invalidate(IPersistantQueueItem item, int invisibleTimeout = 30000)
         {
             item.InvisibleUntil = DateTime.Now.AddMilliseconds(invisibleTimeout);
             store.Update(item);
         }
 
-        public virtual void Delete(QueueItemType item)
+        public virtual void Delete(IPersistantQueueItem item)
 		{
 			store.Delete(item);
 		}
@@ -198,7 +227,7 @@ namespace PersistentQueue
 	}
 
     [Table("PersistantQueueItem")]
-    public abstract class PersistantQueueItem
+    public class PersistantQueueItem : IPersistantQueueItem
     {
         [PrimaryKey]
         [AutoIncrement]

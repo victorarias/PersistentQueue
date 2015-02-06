@@ -6,7 +6,7 @@ using SQLite;
 
 namespace PersistentQueue
 {
-    class FilterQueue : PersistantQueue<FilterQueueItem>
+    public class FilterQueue : PersistantQueue<FilterQueueItem>
     {
         protected FilterQueue(string name, bool reset = false)
             : base(name, reset)
@@ -17,7 +17,7 @@ namespace PersistentQueue
         /// <summary>
         /// Removes the record from the queue without removing it from the database
         /// </summary>
-        public override void Delete(FilterQueueItem item)
+        public override void Delete(IPersistantQueueItem item)
         {
             this.Delete(item, false);
         }
@@ -25,7 +25,7 @@ namespace PersistentQueue
         /// <summary>
         /// Removes the record from the queue, optionally removing it from the database.
         /// </summary>
-        public virtual void Delete(FilterQueueItem item, bool removeFromDB)
+        public virtual void Delete(IPersistantQueueItem item, bool removeFromDB)
         {
             if (removeFromDB)
             {
@@ -33,8 +33,9 @@ namespace PersistentQueue
             }
             else
             {
-                item.DeleteTime = DateTime.Now;
-                store.Update(item);
+                var fqItem = (FilterQueueItem)item;
+                fqItem.DeleteTime = DateTime.Now;
+                store.Update(fqItem);
             }
         }
 

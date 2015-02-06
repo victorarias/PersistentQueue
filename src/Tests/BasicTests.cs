@@ -11,8 +11,17 @@ using SQLite;
 namespace Tests
 {
 	[TestFixture]
-	public class PersistentQueueTests
+	public class BasicTests
 	{
+
+        [Test]
+        public void Covarience()
+        {
+            IPersistantQueue<PersistantQueueItem> queue;
+            using (queue = Queue.CreateNew()) { }
+            using (queue = FilterQueue.CreateNew()) { };
+        }
+
 		[Test]
 		public void ShouldQueueAndDequeueString()
 		{

@@ -10,22 +10,136 @@ using SQLite;
 
 namespace Tests
 {
-	[TestFixture]
-	public class BasicTests
-	{
-
+    [TestFixture]
+    public class BasicTests
+    {
         [Test]
         public void Covarience()
         {
             IPersistantQueue<PersistantQueueItem> queue;
-            using (queue = Queue.CreateNew()) { }
-            using (queue = FilterQueue.CreateNew()) { };
+            var queueFactory = new Queue.Factory();
+            var filterQueueFactory = new FilterQueue.Factory();
+
+            using (queue = queueFactory.CreateNew()) { }
+            using (queue = filterQueueFactory.CreateNew()) { };
+        }
+    }
+
+    [TestFixture]
+    public class FilterQueueTests : CommonTests
+    {
+        FilterQueue.Factory factory = new FilterQueue.Factory();
+
+        public override IPersistantQueue<PersistantQueueItem> Create(string queueName)
+        {
+            return factory.Create(queueName);
         }
 
-		[Test]
+        public override IPersistantQueue<PersistantQueueItem> CreateNew(string queueName)
+        {
+            return factory.CreateNew(queueName);
+        }
+
+        public override IPersistantQueue<PersistantQueueItem> CreateNew()
+        {
+            return factory.CreateNew();
+        }
+
+        [Test]
+        public override void InstanceTypeCheck()
+        {
+            var className = "FilterQueue";
+
+            using (var queue = this.Create("InstanceTypeCheck_" + className))
+            {
+                Assert.IsInstanceOf(typeof(FilterQueue), queue);
+            }
+
+            using (var queue = this.CreateNew("InstanceTypeCheck_" + className))
+            {
+                Assert.IsInstanceOf(typeof(FilterQueue), queue);
+            }
+
+            using (var queue = this.CreateNew())
+            {
+                Assert.IsInstanceOf(typeof(FilterQueue), queue);
+            }
+        }
+    }
+
+    [TestFixture]
+    public class StandardQueueTests : CommonTests
+    {
+        Queue.Factory factory = new Queue.Factory();
+
+        public override IPersistantQueue<PersistantQueueItem> Create(string queueName)
+        {
+            return factory.Create(queueName);
+        }
+
+        public override IPersistantQueue<PersistantQueueItem> CreateNew()
+        {
+            return factory.CreateNew();
+        }
+
+        public override IPersistantQueue<PersistantQueueItem> CreateNew(string queueName )
+        {
+            return factory.CreateNew(queueName);
+        }
+
+        [Test]
+        public override void InstanceTypeCheck()
+        {
+            var className = "Queue";
+
+            using (var queue = this.Create("InstanceTypeCheck_" + className))
+            {
+                Assert.IsInstanceOf(typeof(Queue), queue);
+            }
+
+            using (var queue = this.CreateNew("InstanceTypeCheck_" + className))
+            {
+                Assert.IsInstanceOf(typeof(Queue), queue);
+            }
+
+            using (var queue = this.CreateNew())
+            {
+                Assert.IsInstanceOf(typeof(Queue), queue);
+            }
+        }
+    }
+
+	[TestFixture]
+    public abstract class CommonTests
+    {
+        #region Factory methods
+
+        /// <summary>
+        /// Abstract method that should be used to call Create(string name) on the concrete tested class
+        /// </summary>
+        public abstract IPersistantQueue<PersistantQueueItem> Create(String queueName);
+
+        /// <summary>
+        /// Abstract method that should be used to call CreateNew() on the concrete tested class
+        /// </summary>
+        public abstract IPersistantQueue<PersistantQueueItem> CreateNew();
+
+        /// <summary>
+        /// Abstract method that should be used to call CreateNew(string name) on the concrete tested class
+        /// </summary>
+        public abstract IPersistantQueue<PersistantQueueItem> CreateNew(String queueName);
+
+        /// <summary>
+        /// Checks factory methods
+        /// </summary>
+        public abstract void InstanceTypeCheck();
+
+        #endregion
+
+        [Test]
 		public void ShouldQueueAndDequeueString()
 		{
-			using (var queue = Queue.CreateNew())
+			using (var queue = this.CreateNew())
 			{
 				var item = "woot";
 
@@ -39,7 +153,7 @@ namespace Tests
 		[Test]
 		public void ShouldQueueAndDequeueInt()
 		{
-			using (var queue = Queue.CreateNew())
+			using (var queue = this.CreateNew())
 			{
 				var item = 1;
 
@@ -53,7 +167,7 @@ namespace Tests
 		[Test]
 		public void ShouldQueueAndPeekString()
 		{
-			using (var queue = Queue.CreateNew())
+			using (var queue = this.CreateNew())
 			{
 				var item = "woot";
 
@@ -67,7 +181,7 @@ namespace Tests
 		[Test]
 		public void ShouldHideInvisibleItemFromPeek()
 		{
-			using (var queue = Queue.CreateNew())
+			using (var queue = this.CreateNew())
 			{
 				var item = "woot";
 
@@ -81,13 +195,13 @@ namespace Tests
 		[Test]
 		public void ShouldBeAbleToDequeueAComplexObjectAfterDisposeAndRecreation()
 		{
-			var queue = Queue.CreateNew();
+			var queue = this.CreateNew();
 			var item = new ComplexObject { SomeTextProperty = "text lololo", SomeInt32Property = 123456 };
 
 			queue.Enqueue(item);
 
 			queue.Dispose();
-			using (var newQueue = Queue.Create(queue.Name))
+			using (var newQueue = this.Create(queue.Name))
 			{
 				var dequeueItem = newQueue.Dequeue();
 
@@ -98,8 +212,8 @@ namespace Tests
 		[Test]
 		public void ShouldReturnSameQueueIfTheNameIsEqualToAnother()
 		{
-			using (var queue1 = Queue.Create("queue"))
-			using (var queue2 = Queue.Create("queue"))
+			using (var queue1 = this.Create("queue"))
+			using (var queue2 = this.Create("queue"))
 			{
 				queue1.Should().BeSameAs(queue2);
 			}
@@ -108,16 +222,16 @@ namespace Tests
 		[Test]
 		public void ShouldThrownExceptionTryingToCreateNewThatAlreadyExists()
 		{
-			using (var queue1 = Queue.Create("queue"))
+			using (var queue1 = this.Create("queue"))
 			{
-				Assert.Throws<InvalidOperationException>(() => Queue.CreateNew("queue"));
+				Assert.Throws<InvalidOperationException>(() => this.CreateNew("queue"));
 			}
 		}
 
 		[Test]
 		public void ShouldReturnNullWhenQueueIsEmpty()
 		{
-			using (var queue = Queue.CreateNew())
+			using (var queue = this.CreateNew())
 			{
 				queue.Dequeue().Should().BeNull();
 			}
@@ -126,7 +240,7 @@ namespace Tests
 		[Test]
 		public void ShouldHideInvisibleMessages()
 		{
-			using (var queue = Queue.CreateNew())
+			using (var queue = this.CreateNew())
 			{
 				queue.Enqueue("oi");
 				queue.Dequeue(false, 1000);
@@ -142,7 +256,7 @@ namespace Tests
 		{
 			//this test, and any other that depends on the Thread.Sleep, can eventually fail...
 			//run it again to be sure it is broken
-			using (var queue = Queue.CreateNew())
+			using (var queue = this.CreateNew())
 			{
 				queue.Enqueue("oi");
 				queue.Dequeue(false, 1000);
@@ -160,7 +274,7 @@ namespace Tests
 		[Test]
 		public void ShouldRemoveInvisibleItemWhenDeleted()
 		{
-			using (var queue = Queue.CreateNew())
+			using (var queue = this.CreateNew())
 			{
 				queue.Enqueue("oi");
 				var item = queue.Dequeue(false, 100);

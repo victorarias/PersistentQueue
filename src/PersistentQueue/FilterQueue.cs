@@ -8,7 +8,11 @@ namespace PersistentQueue
 {
     public class FilterQueue : PersistantQueue<FilterQueueItem>
     {
-        protected FilterQueue(string name, bool reset = false)
+        public class Factory : PersistantQueueFactory<FilterQueue> { }
+
+        public FilterQueue() : base() { }
+
+        public FilterQueue(string name, bool reset = false)
             : base(name, reset)
 		{
             

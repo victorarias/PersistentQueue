@@ -20,7 +20,7 @@ namespace PersistentQueue
     /// <summary>
     /// Abstract class
     /// </summary>
-    public interface IPersistantQueue<out QueueItemType> : IDisposable where QueueItemType : IPersistantQueueItem, new()
+    public interface IPersistantQueue<out QueueItemType> : IDisposable where QueueItemType : IPersistantQueueItem
     {
         #region Public Properties
 
@@ -28,7 +28,6 @@ namespace PersistentQueue
 
         #endregion
 
-        IPersistantQueue<QueueItemType> Duplicate(string newName = null);
         void Enqueue(object obj);
         QueueItemType Dequeue(bool remove = true, int invisibleTimeout = 30000);
         void Invalidate(IPersistantQueueItem item, int invisibleTimeout = 30000);
@@ -56,65 +55,75 @@ namespace PersistentQueue
 
 		#endregion
 
-		#region Static
-
         private static Dictionary<string, PersistantQueue<QueueItemType>> queues = new Dictionary<string, PersistantQueue<QueueItemType>>();
 
-        public static PersistantQueue<QueueItemType> Default
-		{
-			get
-			{
-				return Create(defaultQueueName);
-			}
-		}
+        #region Factory
 
-        public static PersistantQueue<QueueItemType> CreateNew()
-		{
-			return CreateNew(defaultQueueName);
-		}
+        public class PersistantQueueFactory<ConcreteType> where ConcreteType : PersistantQueue<QueueItemType>, new()
+        {
+            public PersistantQueue<QueueItemType> Default()
+            {
+                var c = Create("");
+                return Create(defaultQueueName);
+            }
 
-        public static PersistantQueue<QueueItemType> CreateNew(string name)
-		{
-			lock (queues)
-			{
-				if (queues.ContainsKey(name))
-					throw new InvalidOperationException("there is already a queue with that name");
-                
-				var queue = new PersistantQueue<QueueItemType>(name, true);
-				queues.Add(name, queue);
+            public PersistantQueue<QueueItemType> Create(string name)
+            {
+                lock (queues)
+                {
+                    PersistantQueue<QueueItemType> queue;
 
-				return queue;
-			}
-		}
+                    if (!queues.TryGetValue(name, out queue))
+                    {
+                        queue = new ConcreteType();
+                        queue.Initialize(name);
+                        queues.Add(name, queue);
+                    }
 
-        public static PersistantQueue<QueueItemType> Create(string name)
-		{
-			lock (queues)
-			{
-                PersistantQueue<QueueItemType> queue;
+                    return queue;
+                }
+            }
 
-				if (!queues.TryGetValue(name, out queue))
-				{
-					queue = new PersistantQueue<QueueItemType>(name);
-					queues.Add(name, queue);
-				}
+            public PersistantQueue<QueueItemType> CreateNew()
+            {
+                return CreateNew(defaultQueueName);
+            }
 
-				return queue;
-			}
-		}
+            public PersistantQueue<QueueItemType> CreateNew(string name)
+            {
+                if (name == null)
+                {
+                    throw new ArgumentNullException("name",
+                        "CreateNew(string name) requires a non null name parameter. Consider calling CreateNew() instead if you do not want to pass in a name");
+                }
+
+                lock (queues)
+                {
+                    if (queues.ContainsKey(name))
+                        throw new InvalidOperationException("there is already a queue with that name");
+
+                    var queue = new ConcreteType();
+                    queue.Initialize(name, true);
+                    queues.Add(name, queue);
+
+                    return queue;
+                }
+            }
+        }
 
 		#endregion
 
-        protected PersistantQueue(string name, bool reset = false)
-		{
-			if (reset && File.Exists(defaultQueueName))
-				File.Delete(defaultQueueName);
+        public PersistantQueue()
+        {
 
-			Initialize(name);
+        }
+
+        public PersistantQueue(string name, bool reset = false)
+		{
+            Initialize(name, reset);
 		}
 
         ~PersistantQueue()
-
 		{
 			if (!disposed)
 			{
@@ -122,18 +131,31 @@ namespace PersistentQueue
 			}
 		}
 
+        /*
         public virtual IPersistantQueue<QueueItemType> Duplicate(string newName = null)
         {
             lock (store)
             {
                 newName = newName ?? this.Name + ".New";
                 File.Copy(this.Name, newName);
-                return CreateNew(newName);
+                var newObj = this.GetType().GetConstructor(new Type[0]).Invoke(null);
+                newObj
+                //return CreateNew(newName);
             }
-        }
+        }*/
 
-        protected virtual void Initialize(string name)
+        protected virtual void Initialize(string name, bool reset = false)
 		{
+            if (name == null)
+            {
+                throw new ArgumentNullException("name");
+            }
+
+            if (reset && File.Exists(defaultQueueName))
+            {
+                File.Delete(defaultQueueName);
+            }
+
 			Name = name;
 			store = new SQLiteConnection(name);
             store.CreateTable<QueueItemType>();
@@ -223,6 +245,11 @@ namespace PersistentQueue
             return store.Table<QueueItemType>()
                      .Where(a => DateTime.Now > a.InvisibleUntil)
                      .OrderBy(a => a.Id);
+        }
+
+        public IPersistantQueue<QueueItemType> ToInterface()
+        {
+            return (IPersistantQueue<QueueItemType>)this;
         }
 	}
 

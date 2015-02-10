@@ -8,7 +8,11 @@ namespace PersistentQueue
 {
     public class Queue : PersistantQueue<QueueItem>
     {
-        protected Queue(string name, bool reset = false)
+        public class Factory : PersistantQueueFactory<Queue> { }
+
+        public Queue() : base() { }
+
+        public Queue(string name, bool reset = false)
             : base(name, reset)
 		{
             

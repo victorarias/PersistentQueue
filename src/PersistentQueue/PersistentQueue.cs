@@ -99,7 +99,6 @@ namespace PersistentQueue
         {
             public IPersistantQueue<IPersistantQueueItem> Default()
             {
-                var c = Create("");
                 return Create(defaultQueueName);
             }
 

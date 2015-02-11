@@ -14,6 +14,7 @@ namespace PersistentQueue
         DateTime InvisibleUntil { get; set; }
         byte[] Message { get; set; }
         T CastTo<T>();
+        String TableName();
     }
 
 
@@ -34,40 +35,75 @@ namespace PersistentQueue
         void Delete(IPersistantQueueItem item);
         object Peek();
         T Peek<T>();
+        String TableName();
     }
 
     /// <summary>
-    /// 
+    /// Represents a factory that builds specific PersistantQueue implementations
     /// </summary>
-    public class PersistantQueue<QueueItemType> : IPersistantQueue<QueueItemType> where QueueItemType : PersistantQueueItem, new()
+    public interface IPersistantQueueFactory
+    {
+        /// <summary>
+        /// Creates or returns a PersistantQueue instance with default parameters for storage.
+        /// </summary>
+        IPersistantQueue<IPersistantQueueItem> Default();
+
+        /// <summary>
+        /// Creates or returns a PersistantQueue instance that is stored at given path.
+        /// </summary>
+        IPersistantQueue<IPersistantQueueItem> Create(string name);
+
+        /// <summary>
+        /// Attempts to create a new PersistantQueue instance with default parameters for storage.
+        /// If the instance was already loaded, an exception will be thrown.
+        /// </summary>
+        IPersistantQueue<IPersistantQueueItem> CreateNew();
+
+        /// <summary>
+        /// Attempts to create a new PersistantQueue instance that is stored at the given path.
+        /// If the instance was already loaded, an exception will be thrown.
+        /// </summary>
+        IPersistantQueue<IPersistantQueueItem> CreateNew(string name);
+    }
+
+    public class QueueStorageMismatchException : Exception
+    {
+        public QueueStorageMismatchException(String message) : base(message) { }
+
+        public QueueStorageMismatchException(IPersistantQueue<IPersistantQueueItem> queue, IPersistantQueueItem invalidQueueItem)
+            : base(BuildMessage(queue, invalidQueueItem))
+        {
+
+        }
+
+        private static String BuildMessage(IPersistantQueue<IPersistantQueueItem> queue, IPersistantQueueItem invalidQueueItem)
+        {
+            return String.Format("Queue Item of type {0} stores data to a table named \"{1}\". Queue of type {2} stores data to a table names \"{3}\"",
+                                 invalidQueueItem.GetType(),
+                                 invalidQueueItem.TableName(),
+                                 queue.GetType(),
+                                 queue.TableName());
+        }
+    }
+
+    /// <summary>
+    /// A class that implements a persistant SQLite backed queue
+    /// </summary>
+    public abstract class PersistantQueue<QueueItemType> : IPersistantQueue<QueueItemType> where QueueItemType : PersistantQueueItem, new()
 	{
-		#region Private Properties
-
-		protected const string defaultQueueName = "persistentQueue";
-        protected SQLite.SQLiteConnection store;
-        protected bool disposed = false;
-
-		#endregion
-
-		#region Public Properties
-
-        public string Name { get; protected set; }
-
-		#endregion
-
-        private static Dictionary<string, PersistantQueue<QueueItemType>> queues = new Dictionary<string, PersistantQueue<QueueItemType>>();
+		private static Dictionary<string, PersistantQueue<QueueItemType>> queues = new Dictionary<string, PersistantQueue<QueueItemType>>();
 
         #region Factory
 
-        public class PersistantQueueFactory<ConcreteType> where ConcreteType : PersistantQueue<QueueItemType>, new()
+        public abstract class PersistantQueueFactory<ConcreteType> : IPersistantQueueFactory where ConcreteType : PersistantQueue<QueueItemType>, new()
         {
-            public PersistantQueue<QueueItemType> Default()
+            public IPersistantQueue<IPersistantQueueItem> Default()
             {
                 var c = Create("");
                 return Create(defaultQueueName);
             }
 
-            public PersistantQueue<QueueItemType> Create(string name)
+            public IPersistantQueue<IPersistantQueueItem> Create(string name)
             {
                 lock (queues)
                 {
@@ -84,12 +120,12 @@ namespace PersistentQueue
                 }
             }
 
-            public PersistantQueue<QueueItemType> CreateNew()
+            public IPersistantQueue<IPersistantQueueItem> CreateNew()
             {
                 return CreateNew(defaultQueueName);
             }
 
-            public PersistantQueue<QueueItemType> CreateNew(string name)
+            public IPersistantQueue<IPersistantQueueItem> CreateNew(string name)
             {
                 if (name == null)
                 {
@@ -113,6 +149,20 @@ namespace PersistentQueue
 
 		#endregion
 
+        #region Private Properties
+
+        protected const string defaultQueueName = "persistentQueue";
+        protected SQLite.SQLiteConnection store;
+        protected bool disposed = false;
+
+        #endregion
+
+        #region Public Properties
+
+        public string Name { get; protected set; }
+
+        #endregion
+
         public PersistantQueue()
         {
 
@@ -130,19 +180,6 @@ namespace PersistentQueue
 				this.Dispose();
 			}
 		}
-
-        /*
-        public virtual IPersistantQueue<QueueItemType> Duplicate(string newName = null)
-        {
-            lock (store)
-            {
-                newName = newName ?? this.Name + ".New";
-                File.Copy(this.Name, newName);
-                var newObj = this.GetType().GetConstructor(new Type[0]).Invoke(null);
-                newObj
-                //return CreateNew(newName);
-            }
-        }*/
 
         protected virtual void Initialize(string name, bool reset = false)
 		{
@@ -197,13 +234,27 @@ namespace PersistentQueue
 
         public virtual void Invalidate(IPersistantQueueItem item, int invisibleTimeout = 30000)
         {
-            item.InvisibleUntil = DateTime.Now.AddMilliseconds(invisibleTimeout);
-            store.Update(item);
+            if (item is QueueItemType)
+            {
+                item.InvisibleUntil = DateTime.Now.AddMilliseconds(invisibleTimeout);
+                store.Update(item);
+            }
+            else
+            {
+                throw new QueueStorageMismatchException(this, item);
+            }
         }
 
         public virtual void Delete(IPersistantQueueItem item)
 		{
-			store.Delete(item);
+            if (item is QueueItem)
+            {
+                store.Delete(item);
+            }
+            else
+            {
+                throw new QueueStorageMismatchException(this, item);
+            }
 		}
 
 		public object Peek()
@@ -247,14 +298,28 @@ namespace PersistentQueue
                      .OrderBy(a => a.Id);
         }
 
-        public IPersistantQueue<QueueItemType> ToInterface()
+        public String TableName()
         {
-            return (IPersistantQueue<QueueItemType>)this;
+            String name = null;
+
+            System.Attribute[] attrs = System.Attribute.GetCustomAttributes(typeof(QueueItemType));
+
+            foreach (System.Attribute attr in attrs)
+            {
+                if (attr is SQLite.TableAttribute)
+                {
+                    var a = (SQLite.TableAttribute)attr;
+                    name = a.Name;
+                    break;
+                }
+            }
+
+            return name;
         }
 	}
 
     [Table("PersistantQueueItem")]
-    public class PersistantQueueItem : IPersistantQueueItem
+    public abstract class PersistantQueueItem : IPersistantQueueItem
     {
         [PrimaryKey]
         [AutoIncrement]
@@ -270,6 +335,25 @@ namespace PersistentQueue
         public T CastTo<T>()
         {
             return (T)this.ToObject();
+        }
+
+        public String TableName()
+        {
+            String name = null;
+
+            System.Attribute[] attrs = System.Attribute.GetCustomAttributes(this.GetType());
+
+            foreach (System.Attribute attr in attrs)
+            {
+                if (attr is SQLite.TableAttribute)
+                {
+                    var a = (SQLite.TableAttribute)attr;
+                    name = a.Name;
+                    break;
+                }
+            }
+
+            return name;
         }
     }
 

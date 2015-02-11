@@ -16,31 +16,34 @@ namespace Tests
         [Test]
         public void Covarience()
         {
-            IPersistantQueue<PersistantQueueItem> queue;
-            var queueFactory = new Queue.Factory();
-            var filterQueueFactory = new FilterQueue.Factory();
+            IPersistantQueue<IPersistantQueueItem> queue;
+            IPersistantQueueFactory factory;
 
-            using (queue = queueFactory.CreateNew()) { }
-            using (queue = filterQueueFactory.CreateNew()) { };
+
+            factory = new Queue.Factory();
+            using (queue = factory.CreateNew()) { }
+
+            factory = new FilterQueue.Factory();
+            using (queue = factory.CreateNew()) { };
         }
     }
 
     [TestFixture]
     public class FilterQueueTests : CommonTests
     {
-        FilterQueue.Factory factory = new FilterQueue.Factory();
+        IPersistantQueueFactory factory = new FilterQueue.Factory();
 
-        public override IPersistantQueue<PersistantQueueItem> Create(string queueName)
+        public override IPersistantQueue<IPersistantQueueItem> Create(string queueName)
         {
             return factory.Create(queueName);
         }
 
-        public override IPersistantQueue<PersistantQueueItem> CreateNew(string queueName)
+        public override IPersistantQueue<IPersistantQueueItem> CreateNew(string queueName)
         {
             return factory.CreateNew(queueName);
         }
 
-        public override IPersistantQueue<PersistantQueueItem> CreateNew()
+        public override IPersistantQueue<IPersistantQueueItem> CreateNew()
         {
             return factory.CreateNew();
         }
@@ -70,19 +73,19 @@ namespace Tests
     [TestFixture]
     public class StandardQueueTests : CommonTests
     {
-        Queue.Factory factory = new Queue.Factory();
+        IPersistantQueueFactory factory = new Queue.Factory();
 
-        public override IPersistantQueue<PersistantQueueItem> Create(string queueName)
+        public override IPersistantQueue<IPersistantQueueItem> Create(string queueName)
         {
             return factory.Create(queueName);
         }
 
-        public override IPersistantQueue<PersistantQueueItem> CreateNew()
+        public override IPersistantQueue<IPersistantQueueItem> CreateNew()
         {
             return factory.CreateNew();
         }
 
-        public override IPersistantQueue<PersistantQueueItem> CreateNew(string queueName )
+        public override IPersistantQueue<IPersistantQueueItem> CreateNew(string queueName )
         {
             return factory.CreateNew(queueName);
         }
@@ -117,17 +120,17 @@ namespace Tests
         /// <summary>
         /// Abstract method that should be used to call Create(string name) on the concrete tested class
         /// </summary>
-        public abstract IPersistantQueue<PersistantQueueItem> Create(String queueName);
+        public abstract IPersistantQueue<IPersistantQueueItem> Create(String queueName);
 
         /// <summary>
         /// Abstract method that should be used to call CreateNew() on the concrete tested class
         /// </summary>
-        public abstract IPersistantQueue<PersistantQueueItem> CreateNew();
+        public abstract IPersistantQueue<IPersistantQueueItem> CreateNew();
 
         /// <summary>
         /// Abstract method that should be used to call CreateNew(string name) on the concrete tested class
         /// </summary>
-        public abstract IPersistantQueue<PersistantQueueItem> CreateNew(String queueName);
+        public abstract IPersistantQueue<IPersistantQueueItem> CreateNew(String queueName);
 
         /// <summary>
         /// Checks factory methods

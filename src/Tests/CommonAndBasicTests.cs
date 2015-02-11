@@ -10,15 +10,21 @@ using SQLite;
 
 namespace Tests
 {
+    /// <summary>
+    /// Performs type checking tests
+    /// </summary>
     [TestFixture]
     public class BasicTests
     {
+        /// <summary>
+        /// Ensures that IPersistantQueue and IPersistantQueueFactory types
+        /// can be assigned to and used interchangeably
+        /// </summary>
         [Test]
-        public void Covarience()
+        public void InterfaceCovarience()
         {
             IPersistantQueue<IPersistantQueueItem> queue;
             IPersistantQueueFactory factory;
-
 
             factory = new Queue.Factory();
             using (queue = factory.CreateNew()) { }
@@ -28,114 +34,57 @@ namespace Tests
         }
     }
 
-    [TestFixture]
-    public class FilterQueueTests : CommonTests
-    {
-        IPersistantQueueFactory factory = new FilterQueue.Factory();
-
-        public override IPersistantQueue<IPersistantQueueItem> Create(string queueName)
-        {
-            return factory.Create(queueName);
-        }
-
-        public override IPersistantQueue<IPersistantQueueItem> CreateNew(string queueName)
-        {
-            return factory.CreateNew(queueName);
-        }
-
-        public override IPersistantQueue<IPersistantQueueItem> CreateNew()
-        {
-            return factory.CreateNew();
-        }
-
-        [Test]
-        public override void InstanceTypeCheck()
-        {
-            var className = "FilterQueue";
-
-            using (var queue = this.Create("InstanceTypeCheck_" + className))
-            {
-                Assert.IsInstanceOf(typeof(FilterQueue), queue);
-            }
-
-            using (var queue = this.CreateNew("InstanceTypeCheck_" + className))
-            {
-                Assert.IsInstanceOf(typeof(FilterQueue), queue);
-            }
-
-            using (var queue = this.CreateNew())
-            {
-                Assert.IsInstanceOf(typeof(FilterQueue), queue);
-            }
-        }
-    }
-
-    [TestFixture]
-    public class StandardQueueTests : CommonTests
-    {
-        IPersistantQueueFactory factory = new Queue.Factory();
-
-        public override IPersistantQueue<IPersistantQueueItem> Create(string queueName)
-        {
-            return factory.Create(queueName);
-        }
-
-        public override IPersistantQueue<IPersistantQueueItem> CreateNew()
-        {
-            return factory.CreateNew();
-        }
-
-        public override IPersistantQueue<IPersistantQueueItem> CreateNew(string queueName )
-        {
-            return factory.CreateNew(queueName);
-        }
-
-        [Test]
-        public override void InstanceTypeCheck()
-        {
-            var className = "Queue";
-
-            using (var queue = this.Create("InstanceTypeCheck_" + className))
-            {
-                Assert.IsInstanceOf(typeof(Queue), queue);
-            }
-
-            using (var queue = this.CreateNew("InstanceTypeCheck_" + className))
-            {
-                Assert.IsInstanceOf(typeof(Queue), queue);
-            }
-
-            using (var queue = this.CreateNew())
-            {
-                Assert.IsInstanceOf(typeof(Queue), queue);
-            }
-        }
-    }
-
+    /// <summary>
+    /// An abstract class containing tests that should apply to all PersistantQueue subclasses
+    /// </summary>
 	[TestFixture]
     public abstract class CommonTests
     {
         #region Factory methods
 
         /// <summary>
-        /// Abstract method that should be used to call Create(string name) on the concrete tested class
+        /// A Factory that builds the test class
         /// </summary>
-        public abstract IPersistantQueue<IPersistantQueueItem> Create(String queueName);
+        protected IPersistantQueueFactory factory;
 
         /// <summary>
-        /// Abstract method that should be used to call CreateNew() on the concrete tested class
+        /// Abstract method used to build the tested Class' factory
         /// </summary>
-        public abstract IPersistantQueue<IPersistantQueueItem> CreateNew();
+        public abstract IPersistantQueueFactory BuildFactory();
 
         /// <summary>
-        /// Abstract method that should be used to call CreateNew(string name) on the concrete tested class
+        /// Shortcut to call Create(string name) on the concrete test class' factory
         /// </summary>
-        public abstract IPersistantQueue<IPersistantQueueItem> CreateNew(String queueName);
+        public virtual IPersistantQueue<IPersistantQueueItem> Create(string queueName)
+        {
+            return factory.Create(queueName);
+        }
 
         /// <summary>
-        /// Checks factory methods
+        /// Shortcut to call CreateNew() on the concrete test class' factory
+        /// </summary>
+        public virtual IPersistantQueue<IPersistantQueueItem> CreateNew()
+        {
+            return factory.CreateNew();
+        }
+
+        /// <summary>
+        /// Shortcut to call CreateNew(string name) on the concrete test class' factory
+        /// </summary>
+        public virtual IPersistantQueue<IPersistantQueueItem> CreateNew(string queueName)
+        {
+            return factory.CreateNew(queueName);
+        }
+
+        /// <summary>
+        /// Performs type checks on the Interfaces returned by factory methods
         /// </summary>
         public abstract void InstanceTypeCheck();
+
+        public CommonTests()
+        {
+            factory = BuildFactory();
+        }
 
         #endregion
 

@@ -113,7 +113,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="BasicTests.cs" />
+    <Compile Include="CommonAndBasicTests.cs" />
+    <Compile Include="QueueSpecificTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

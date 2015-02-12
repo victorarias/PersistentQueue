@@ -90,6 +90,39 @@ namespace Tests
                 deletedItems.Count.Should().Be(0);
             }
         }
+
+        [Test]
+        public void HardDeletesShouldBeRespected()
+        {
+            using (var queue = this.CreateNew() as FilterQueue)
+            {
+                var entities = new[]{
+                    "One",
+                    "Two",
+                    "Three"
+                };
+
+                foreach (var entity in entities)
+                {
+                    queue.Enqueue(entity);
+                }
+
+                var activeItems = queue.ActiveItems();
+
+                activeItems.Count.Should().Be(3);
+
+                queue.Delete(activeItems[1], true);
+
+                activeItems = queue.ActiveItems();
+
+                activeItems.Count.Should().Be(2);
+
+                queue.DeletedItems().Count.Should().Be(0);
+
+                activeItems[0].CastTo<String>().Should().Be(entities[0]);
+                activeItems[1].CastTo<String>().Should().Be(entities[2]);
+            }
+        }
     }
 
     [TestFixture]

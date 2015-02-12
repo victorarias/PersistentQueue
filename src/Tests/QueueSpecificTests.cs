@@ -123,6 +123,76 @@ namespace Tests
                 activeItems[1].CastTo<String>().Should().Be(entities[2]);
             }
         }
+
+        [Test]
+        public void FilterCountCorrectness()
+        {
+            using (var queue = this.CreateNew() as FilterQueue)
+            {
+                var entities = new[]{
+                    "One",
+                    "Two",
+                    "Three"
+                };
+
+                foreach (var entity in entities)
+                {
+                    queue.Enqueue(entity);
+                }
+
+                //All active items and all items should both contain the same entries as entities
+                var activeItems = queue.ActiveItems();
+                activeItems.Count.Should().Be(entities.Length);
+                queue.AllItems().Count.Should().Be(entities.Length);
+
+                //Soft delete
+                queue.Delete(activeItems[1]);
+
+                //Active items should be less one
+                queue.ActiveItems().Count.Should().Be(entities.Length - 1);
+                //All items should be untouched
+                queue.AllItems().Count.Should().Be(entities.Length);
+                //Deleted items should have one
+                queue.DeletedItems().Count.Should().Be(1);
+
+                //Hard delete
+                queue.Delete(activeItems[1],true);
+
+                //Active items remain unchanged
+                queue.ActiveItems().Count.Should().Be(entities.Length - 1);
+                //All items now matches active
+                queue.AllItems().Count.Should().Be(entities.Length - 1);
+                //Deleted items are zero
+                queue.DeletedItems().Count.Should().Be(0);
+            }
+        }
+
+        [Test]
+        public void CanHardDeleteMultipleTimes()
+        {
+            using (var queue = this.CreateNew() as FilterQueue)
+            {
+                var entities = new[]{
+                    "One",
+                    "Two",
+                    "Three"
+                };
+
+                foreach (var entity in entities)
+                {
+                    queue.Enqueue(entity);
+                }
+
+                //All active items and all items should both contain the same entries as entities
+                var activeItems = queue.ActiveItems();
+
+                //Hard delete
+                for (int cnt = 0; cnt < 5; cnt++)
+                {
+                    queue.Delete(activeItems[1], true);
+                }
+            }
+        }
     }
 
     [TestFixture]

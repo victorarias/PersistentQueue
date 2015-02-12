@@ -246,7 +246,7 @@ namespace PersistentQueue
 
         public virtual void Delete(IPersistantQueueItem item)
 		{
-            if (item is QueueItem)
+            if (item is QueueItemType)
             {
                 store.Delete(item);
             }

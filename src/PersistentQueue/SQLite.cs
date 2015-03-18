@@ -3266,15 +3266,16 @@ namespace SQLite
 			return (Result)Sqlite3.sqlite3_enable_load_extension(db, onoff);
 		}
 
-		public static ExtendedResult ExtendedErrCode(Sqlite3DatabaseHandle db)
+        private static MethodInfo _sqlite3_extended_errcode_Method = typeof(Sqlite3).GetMethod("sqlite3_extended_errcode", BindingFlags.NonPublic | BindingFlags.Static);
+        private static Func<Sqlite3DatabaseHandle, int> _sqlite3_extended_errcode_DM = (Func<Sqlite3DatabaseHandle, int>)Delegate.CreateDelegate(typeof(Func<Sqlite3DatabaseHandle, int>), _sqlite3_extended_errcode_Method);
+        public static ExtendedResult ExtendedErrCode(Sqlite3DatabaseHandle db)
 		{
             //For some reason sqlite3_extended_errcode is marked as private, so lets do evil things to fix that
             int result;
 
             try
             {
-                MethodInfo dynMethod = typeof(Sqlite3).GetMethod("sqlite3_extended_errcode", BindingFlags.NonPublic | BindingFlags.Static);
-                result = (int)dynMethod.Invoke(null, new object[] { db });
+                result = _sqlite3_extended_errcode_DM(db);
             }
             catch (Exception ex)
             {

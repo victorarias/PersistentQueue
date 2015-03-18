@@ -7,6 +7,7 @@ using PersistentQueue;
 using FluentAssertions;
 using System.Threading;
 using SQLite;
+using ZipRecruiter;
 
 namespace Tests
 {
@@ -16,6 +17,12 @@ namespace Tests
     [TestFixture]
     public class BasicTests
     {
+        [TestFixtureSetUp]
+        public void Init()
+        {
+            SQLiteShim.InjectSQLite();
+        }
+
         /// <summary>
         /// Ensures that IPersistantQueue and IPersistantQueueFactory types
         /// can be assigned to and used interchangeably
@@ -40,6 +47,12 @@ namespace Tests
 	[TestFixture]
     public abstract class CommonTests
     {
+        [TestFixtureSetUp]
+        public void Init()
+        {
+            SQLiteShim.InjectSQLite();
+        }
+
         #region Factory methods
 
         /// <summary>

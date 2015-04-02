@@ -21,7 +21,7 @@ namespace PersistentQueue
     /// <summary>
     /// Abstract class
     /// </summary>
-    public interface IPersistantQueue<out QueueItemType> : IDisposable where QueueItemType : IPersistantQueueItem
+    public interface IPersistantQueue : IDisposable
     {
         #region Public Properties
 
@@ -30,7 +30,7 @@ namespace PersistentQueue
         #endregion
 
         void Enqueue(object obj);
-        QueueItemType Dequeue(bool remove = true, int invisibleTimeout = 30000);
+        IPersistantQueueItem Dequeue(bool remove = true, int invisibleTimeout = 30000);
         void Invalidate(IPersistantQueueItem item, int invisibleTimeout = 30000);
         void Delete(IPersistantQueueItem item);
         object Peek();
@@ -46,37 +46,37 @@ namespace PersistentQueue
         /// <summary>
         /// Creates or returns a PersistantQueue instance with default parameters for storage.
         /// </summary>
-        IPersistantQueue<IPersistantQueueItem> Default();
+        IPersistantQueue Default();
 
         /// <summary>
         /// Creates or returns a PersistantQueue instance that is stored at given path.
         /// </summary>
-        IPersistantQueue<IPersistantQueueItem> Create(string name);
+        IPersistantQueue Create(string name);
 
         /// <summary>
         /// Attempts to create a new PersistantQueue instance with default parameters for storage.
         /// If the instance was already loaded, an exception will be thrown.
         /// </summary>
-        IPersistantQueue<IPersistantQueueItem> CreateNew();
+        IPersistantQueue CreateNew();
 
         /// <summary>
         /// Attempts to create a new PersistantQueue instance that is stored at the given path.
         /// If the instance was already loaded, an exception will be thrown.
         /// </summary>
-        IPersistantQueue<IPersistantQueueItem> CreateNew(string name);
+        IPersistantQueue CreateNew(string name);
     }
 
     public class QueueStorageMismatchException : Exception
     {
         public QueueStorageMismatchException(String message) : base(message) { }
 
-        public QueueStorageMismatchException(IPersistantQueue<IPersistantQueueItem> queue, IPersistantQueueItem invalidQueueItem)
+        public QueueStorageMismatchException(IPersistantQueue queue, IPersistantQueueItem invalidQueueItem)
             : base(BuildMessage(queue, invalidQueueItem))
         {
 
         }
 
-        private static String BuildMessage(IPersistantQueue<IPersistantQueueItem> queue, IPersistantQueueItem invalidQueueItem)
+        private static String BuildMessage(IPersistantQueue queue, IPersistantQueueItem invalidQueueItem)
         {
             return String.Format("Queue Item of type {0} stores data to a table named \"{1}\". Queue of type {2} stores data to a table names \"{3}\"",
                                  invalidQueueItem.GetType(),
@@ -86,32 +86,45 @@ namespace PersistentQueue
         }
     }
 
+    public static class PersistantQueueStorage
+    {
+        private static Dictionary<string, IPersistantQueue> queues = new Dictionary<string, IPersistantQueue>();
+        public static Dictionary<string, IPersistantQueue> Queues
+        {
+            get
+            {
+                return queues;
+            }
+        }
+    }
+
     /// <summary>
     /// A class that implements a persistant SQLite backed queue
     /// </summary>
-    public abstract class PersistantQueue<QueueItemType> : IPersistantQueue<QueueItemType> where QueueItemType : PersistantQueueItem, new()
+    public abstract class Queue<QueueItemType> : IPersistantQueue where QueueItemType : PersistantQueueItem, new()
 	{
-		private static Dictionary<string, PersistantQueue<QueueItemType>> queues = new Dictionary<string, PersistantQueue<QueueItemType>>();
-
         #region Factory
 
-        public abstract class PersistantQueueFactory<ConcreteType> : IPersistantQueueFactory where ConcreteType : PersistantQueue<QueueItemType>, new()
+        private static Dictionary<string, IPersistantQueue> queues = PersistantQueueStorage.Queues;
+
+        public abstract class PersistantQueueFactory<ConcreteType> : IPersistantQueueFactory where ConcreteType : Queue<QueueItemType>, new()
         {
-            public IPersistantQueue<IPersistantQueueItem> Default()
+
+            public IPersistantQueue Default()
             {
                 return Create(defaultQueueName);
             }
 
-            public IPersistantQueue<IPersistantQueueItem> Create(string name)
+            public IPersistantQueue Create(string name)
             {
                 lock (queues)
                 {
-                    PersistantQueue<QueueItemType> queue;
+                    IPersistantQueue queue;
 
                     if (!queues.TryGetValue(name, out queue))
                     {
                         queue = new ConcreteType();
-                        queue.Initialize(name);
+                        ((ConcreteType)queue).Initialize(name);
                         queues.Add(name, queue);
                     }
 
@@ -119,12 +132,12 @@ namespace PersistentQueue
                 }
             }
 
-            public IPersistantQueue<IPersistantQueueItem> CreateNew()
+            public IPersistantQueue CreateNew()
             {
                 return CreateNew(defaultQueueName);
             }
 
-            public IPersistantQueue<IPersistantQueueItem> CreateNew(string name)
+            public IPersistantQueue CreateNew(string name)
             {
                 if (name == null)
                 {
@@ -135,13 +148,15 @@ namespace PersistentQueue
                 lock (queues)
                 {
                     if (queues.ContainsKey(name))
+                    {
                         throw new InvalidOperationException("there is already a queue with that name");
+                    }
 
-                    var queue = new ConcreteType();
+                    ConcreteType queue = new ConcreteType();
                     queue.Initialize(name, true);
                     queues.Add(name, queue);
 
-                    return queue;
+                    return (IPersistantQueue)queue;
                 }
             }
         }
@@ -162,17 +177,17 @@ namespace PersistentQueue
 
         #endregion
 
-        public PersistantQueue()
+        public Queue()
         {
 
         }
 
-        public PersistantQueue(string name, bool reset = false)
+        public Queue(string name, bool reset = false)
 		{
             Initialize(name, reset);
 		}
 
-        ~PersistantQueue()
+        ~Queue()
 		{
 			if (!disposed)
 			{
@@ -205,7 +220,7 @@ namespace PersistentQueue
 			}
 		}
 
-        public QueueItemType Dequeue(bool remove = true, int invisibleTimeout = 30000)
+        public IPersistantQueueItem Dequeue(bool remove = true, int invisibleTimeout = 30000)
 		{
 			lock (store)
 			{
@@ -273,17 +288,18 @@ namespace PersistentQueue
 
 		public void Dispose()
 		{
-			if (!disposed)
-				lock (queues)
-				{
-					disposed = true;
+			if (!disposed) {
+				lock (disposeLock){
+                    disposed = true;
 
 					queues.Remove(this.Name);
 					store.Dispose();
 
 					GC.SuppressFinalize(this);
 				}
+            }
 		}
+        private static object disposeLock = new Object();
 
         protected QueueItemType GetNextItem()
 		{

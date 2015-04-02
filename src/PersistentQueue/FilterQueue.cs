@@ -6,7 +6,7 @@ using SQLite;
 
 namespace PersistentQueue
 {
-    public class FilterQueue : PersistantQueue<FilterQueueItem>
+    public class FilterQueue : Queue<FilterQueueItem>
     {
         public class Factory : PersistantQueueFactory<FilterQueue> { }
 

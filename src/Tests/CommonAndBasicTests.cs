@@ -30,7 +30,7 @@ namespace Tests
         [Test]
         public void InterfaceCovarience()
         {
-            IPersistantQueue<IPersistantQueueItem> queue;
+            IPersistantQueue queue;
             IPersistantQueueFactory factory;
 
             factory = new Queue.Factory();
@@ -68,7 +68,7 @@ namespace Tests
         /// <summary>
         /// Shortcut to call Create(string name) on the concrete test class' factory
         /// </summary>
-        public virtual IPersistantQueue<IPersistantQueueItem> Create(string queueName)
+        public virtual IPersistantQueue Create(string queueName)
         {
             return factory.Create(queueName);
         }
@@ -76,7 +76,7 @@ namespace Tests
         /// <summary>
         /// Shortcut to call CreateNew() on the concrete test class' factory
         /// </summary>
-        public virtual IPersistantQueue<IPersistantQueueItem> CreateNew()
+        public virtual IPersistantQueue CreateNew()
         {
             return factory.CreateNew();
         }
@@ -84,7 +84,7 @@ namespace Tests
         /// <summary>
         /// Shortcut to call CreateNew(string name) on the concrete test class' factory
         /// </summary>
-        public virtual IPersistantQueue<IPersistantQueueItem> CreateNew(string queueName)
+        public virtual IPersistantQueue CreateNew(string queueName)
         {
             return factory.CreateNew(queueName);
         }

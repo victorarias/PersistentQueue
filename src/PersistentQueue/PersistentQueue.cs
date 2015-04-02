@@ -289,7 +289,8 @@ namespace PersistentQueue
 		public void Dispose()
 		{
 			if (!disposed) {
-				lock (disposeLock){
+                lock (queues)
+                {
                     disposed = true;
 
 					queues.Remove(this.Name);
@@ -299,7 +300,6 @@ namespace PersistentQueue
 				}
             }
 		}
-        private static object disposeLock = new Object();
 
         protected QueueItemType GetNextItem()
 		{

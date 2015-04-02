@@ -86,18 +86,6 @@ namespace PersistentQueue
         }
     }
 
-    public static class PersistantQueueStorage
-    {
-        private static Dictionary<string, IPersistantQueue> queues = new Dictionary<string, IPersistantQueue>();
-        public static Dictionary<string, IPersistantQueue> Queues
-        {
-            get
-            {
-                return queues;
-            }
-        }
-    }
-
     /// <summary>
     /// A class that implements a persistant SQLite backed queue
     /// </summary>
@@ -105,7 +93,7 @@ namespace PersistentQueue
 	{
         #region Factory
 
-        private static Dictionary<string, IPersistantQueue> queues = PersistantQueueStorage.Queues;
+        private static Dictionary<string, IPersistantQueue> queues = new Dictionary<string, IPersistantQueue>();
 
         public abstract class PersistantQueueFactory<ConcreteType> : IPersistantQueueFactory where ConcreteType : Queue<QueueItemType>, new()
         {

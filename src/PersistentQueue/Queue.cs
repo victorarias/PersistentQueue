@@ -8,7 +8,7 @@ namespace PersistentQueue
 {
     public class Queue : Queue<QueueItem>
     {
-        public class Factory : PersistantQueueFactory<Queue> { }
+        public class Factory : PersistentQueueFactory<Queue> { }
 
         public Queue() : base() { }
 
@@ -20,7 +20,7 @@ namespace PersistentQueue
     }
 
     [Table("QueueItem")]
-    public class QueueItem : PersistantQueueItem
+    public class QueueItem : PersistentQueueItem
     {        
         public QueueItem()
         {

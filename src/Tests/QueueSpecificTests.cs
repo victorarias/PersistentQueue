@@ -13,7 +13,7 @@ namespace Tests
     [TestFixture]
     public class FilterQueueTests : CommonTests
     {
-        public override IPersistantQueueFactory BuildFactory()
+        public override IPersistentQueueFactory BuildFactory()
         {
             return new FilterQueue.Factory();
         }
@@ -199,7 +199,7 @@ namespace Tests
     public class StandardQueueTests : CommonTests
     {
 
-        public override IPersistantQueueFactory BuildFactory()
+        public override IPersistentQueueFactory BuildFactory()
         {
             return new Queue.Factory();
         }

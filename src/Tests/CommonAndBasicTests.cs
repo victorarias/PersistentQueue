@@ -24,14 +24,14 @@ namespace Tests
         }
 
         /// <summary>
-        /// Ensures that IPersistantQueue and IPersistantQueueFactory types
+        /// Ensures that IPersistentQueue and IPersistentQueueFactory types
         /// can be assigned to and used interchangeably
         /// </summary>
         [Test]
         public void InterfaceCovarience()
         {
-            IPersistantQueue queue;
-            IPersistantQueueFactory factory;
+            IPersistentQueue queue;
+            IPersistentQueueFactory factory;
 
             factory = new Queue.Factory();
             using (queue = factory.CreateNew()) { }
@@ -42,7 +42,7 @@ namespace Tests
     }
 
     /// <summary>
-    /// An abstract class containing tests that should apply to all PersistantQueue subclasses
+    /// An abstract class containing tests that should apply to all PersistentQueue subclasses
     /// </summary>
 	[TestFixture]
     public abstract class CommonTests
@@ -58,17 +58,17 @@ namespace Tests
         /// <summary>
         /// A Factory that builds the test class
         /// </summary>
-        protected IPersistantQueueFactory factory;
+        protected IPersistentQueueFactory factory;
 
         /// <summary>
         /// Abstract method used to build the tested Class' factory
         /// </summary>
-        public abstract IPersistantQueueFactory BuildFactory();
+        public abstract IPersistentQueueFactory BuildFactory();
 
         /// <summary>
         /// Shortcut to call Create(string name) on the concrete test class' factory
         /// </summary>
-        public virtual IPersistantQueue Create(string queueName)
+        public virtual IPersistentQueue Create(string queueName)
         {
             return factory.Create(queueName);
         }
@@ -76,7 +76,7 @@ namespace Tests
         /// <summary>
         /// Shortcut to call CreateNew() on the concrete test class' factory
         /// </summary>
-        public virtual IPersistantQueue CreateNew()
+        public virtual IPersistentQueue CreateNew()
         {
             return factory.CreateNew();
         }
@@ -84,7 +84,7 @@ namespace Tests
         /// <summary>
         /// Shortcut to call CreateNew(string name) on the concrete test class' factory
         /// </summary>
-        public virtual IPersistantQueue CreateNew(string queueName)
+        public virtual IPersistentQueue CreateNew(string queueName)
         {
             return factory.CreateNew(queueName);
         }

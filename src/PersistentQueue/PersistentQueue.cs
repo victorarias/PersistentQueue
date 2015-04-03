@@ -8,7 +8,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 
 namespace PersistentQueue
 {
-    public interface IPersistantQueueItem
+    public interface IPersistentQueueItem
     {
         long Id { get; }
         DateTime InvisibleUntil { get; set; }
@@ -19,9 +19,9 @@ namespace PersistentQueue
 
 
     /// <summary>
-    /// Abstract class
+    /// General Persistent Queue interface
     /// </summary>
-    public interface IPersistantQueue : IDisposable
+    public interface IPersistentQueue : IDisposable
     {
         #region Public Properties
 
@@ -30,53 +30,53 @@ namespace PersistentQueue
         #endregion
 
         void Enqueue(object obj);
-        IPersistantQueueItem Dequeue(bool remove = true, int invisibleTimeout = 30000);
-        void Invalidate(IPersistantQueueItem item, int invisibleTimeout = 30000);
-        void Delete(IPersistantQueueItem item);
+        IPersistentQueueItem Dequeue(bool remove = true, int invisibleTimeout = 30000);
+        void Invalidate(IPersistentQueueItem item, int invisibleTimeout = 30000);
+        void Delete(IPersistentQueueItem item);
         object Peek();
         T Peek<T>();
         String TableName();
     }
 
     /// <summary>
-    /// Represents a factory that builds specific PersistantQueue implementations
+    /// Represents a factory that builds specific PersistentQueue implementations
     /// </summary>
-    public interface IPersistantQueueFactory
+    public interface IPersistentQueueFactory
     {
         /// <summary>
-        /// Creates or returns a PersistantQueue instance with default parameters for storage.
+        /// Creates or returns a PersistentQueue instance with default parameters for storage.
         /// </summary>
-        IPersistantQueue Default();
+        IPersistentQueue Default();
 
         /// <summary>
-        /// Creates or returns a PersistantQueue instance that is stored at given path.
+        /// Creates or returns a PersistentQueue instance that is stored at given path.
         /// </summary>
-        IPersistantQueue Create(string name);
+        IPersistentQueue Create(string name);
 
         /// <summary>
-        /// Attempts to create a new PersistantQueue instance with default parameters for storage.
+        /// Attempts to create a new PersistentQueue instance with default parameters for storage.
         /// If the instance was already loaded, an exception will be thrown.
         /// </summary>
-        IPersistantQueue CreateNew();
+        IPersistentQueue CreateNew();
 
         /// <summary>
-        /// Attempts to create a new PersistantQueue instance that is stored at the given path.
+        /// Attempts to create a new PersistentQueue instance that is stored at the given path.
         /// If the instance was already loaded, an exception will be thrown.
         /// </summary>
-        IPersistantQueue CreateNew(string name);
+        IPersistentQueue CreateNew(string name);
     }
 
     public class QueueStorageMismatchException : Exception
     {
         public QueueStorageMismatchException(String message) : base(message) { }
 
-        public QueueStorageMismatchException(IPersistantQueue queue, IPersistantQueueItem invalidQueueItem)
+        public QueueStorageMismatchException(IPersistentQueue queue, IPersistentQueueItem invalidQueueItem)
             : base(BuildMessage(queue, invalidQueueItem))
         {
 
         }
 
-        private static String BuildMessage(IPersistantQueue queue, IPersistantQueueItem invalidQueueItem)
+        private static String BuildMessage(IPersistentQueue queue, IPersistentQueueItem invalidQueueItem)
         {
             return String.Format("Queue Item of type {0} stores data to a table named \"{1}\". Queue of type {2} stores data to a table names \"{3}\"",
                                  invalidQueueItem.GetType(),
@@ -87,27 +87,27 @@ namespace PersistentQueue
     }
 
     /// <summary>
-    /// A class that implements a persistant SQLite backed queue
+    /// A class that implements a Persistent SQLite backed queue
     /// </summary>
-    public abstract class Queue<QueueItemType> : IPersistantQueue where QueueItemType : PersistantQueueItem, new()
+    public abstract class Queue<QueueItemType> : IPersistentQueue where QueueItemType : PersistentQueueItem, new()
 	{
         #region Factory
 
-        private static Dictionary<string, IPersistantQueue> queues = new Dictionary<string, IPersistantQueue>();
+        private static Dictionary<string, IPersistentQueue> queues = new Dictionary<string, IPersistentQueue>();
 
-        public abstract class PersistantQueueFactory<ConcreteType> : IPersistantQueueFactory where ConcreteType : Queue<QueueItemType>, new()
+        public abstract class PersistentQueueFactory<ConcreteType> : IPersistentQueueFactory where ConcreteType : Queue<QueueItemType>, new()
         {
 
-            public IPersistantQueue Default()
+            public IPersistentQueue Default()
             {
                 return Create(defaultQueueName);
             }
 
-            public IPersistantQueue Create(string name)
+            public IPersistentQueue Create(string name)
             {
                 lock (queues)
                 {
-                    IPersistantQueue queue;
+                    IPersistentQueue queue;
 
                     if (!queues.TryGetValue(name, out queue))
                     {
@@ -120,12 +120,12 @@ namespace PersistentQueue
                 }
             }
 
-            public IPersistantQueue CreateNew()
+            public IPersistentQueue CreateNew()
             {
                 return CreateNew(defaultQueueName);
             }
 
-            public IPersistantQueue CreateNew(string name)
+            public IPersistentQueue CreateNew(string name)
             {
                 if (name == null)
                 {
@@ -144,7 +144,7 @@ namespace PersistentQueue
                     queue.Initialize(name, true);
                     queues.Add(name, queue);
 
-                    return (IPersistantQueue)queue;
+                    return (IPersistentQueue)queue;
                 }
             }
         }
@@ -208,7 +208,7 @@ namespace PersistentQueue
 			}
 		}
 
-        public IPersistantQueueItem Dequeue(bool remove = true, int invisibleTimeout = 30000)
+        public IPersistentQueueItem Dequeue(bool remove = true, int invisibleTimeout = 30000)
 		{
 			lock (store)
 			{
@@ -234,7 +234,7 @@ namespace PersistentQueue
 			}
 		}
 
-        public virtual void Invalidate(IPersistantQueueItem item, int invisibleTimeout = 30000)
+        public virtual void Invalidate(IPersistentQueueItem item, int invisibleTimeout = 30000)
         {
             if (item is QueueItemType)
             {
@@ -247,7 +247,7 @@ namespace PersistentQueue
             }
         }
 
-        public virtual void Delete(IPersistantQueueItem item)
+        public virtual void Delete(IPersistentQueueItem item)
 		{
             if (item is QueueItemType)
             {
@@ -321,8 +321,8 @@ namespace PersistentQueue
         }
 	}
 
-    [Table("PersistantQueueItem")]
-    public abstract class PersistantQueueItem : IPersistantQueueItem
+    [Table("PersistentQueueItem")]
+    public abstract class PersistentQueueItem : IPersistentQueueItem
     {
         [PrimaryKey]
         [AutoIncrement]
@@ -333,7 +333,7 @@ namespace PersistentQueue
 
         public byte[] Message { get; set; }
 
-        public PersistantQueueItem() { }
+        public PersistentQueueItem() { }
 
         public T CastTo<T>()
         {
@@ -362,7 +362,7 @@ namespace PersistentQueue
 
     public static class Extensions
     {
-        public static QueueItemType ToQueueItem<QueueItemType>(this object obj) where QueueItemType : PersistantQueueItem, new()
+        public static QueueItemType ToQueueItem<QueueItemType>(this object obj) where QueueItemType : PersistentQueueItem, new()
         {
             using (var stream = new MemoryStream())
             {
@@ -372,7 +372,7 @@ namespace PersistentQueue
             }
         }
 
-        public static object ToObject<QueueItemType>(this QueueItemType item) where QueueItemType : PersistantQueueItem
+        public static object ToObject<QueueItemType>(this QueueItemType item) where QueueItemType : PersistentQueueItem
         {
             using (var stream = new MemoryStream(item.Message))
             {

@@ -8,7 +8,7 @@ namespace PersistentQueue
 {
     public class FilterQueue : Queue<FilterQueueItem>
     {
-        public class Factory : PersistantQueueFactory<FilterQueue> { }
+        public class Factory : PersistentQueueFactory<FilterQueue> { }
 
         public FilterQueue() : base() { }
 
@@ -21,7 +21,7 @@ namespace PersistentQueue
         /// <summary>
         /// Removes the record from the queue without removing it from the database
         /// </summary>
-        public override void Delete(IPersistantQueueItem item)
+        public override void Delete(IPersistentQueueItem item)
         {
             this.Delete(item, false);
         }
@@ -29,7 +29,7 @@ namespace PersistentQueue
         /// <summary>
         /// Removes the record from the queue, optionally removing it from the database.
         /// </summary>
-        public virtual void Delete(IPersistantQueueItem item, bool removeFromDB)
+        public virtual void Delete(IPersistentQueueItem item, bool removeFromDB)
         {
             if (removeFromDB)
             {
@@ -115,7 +115,7 @@ namespace PersistentQueue
     }
 
     [Table("FilterQueueItem")]
-    public class FilterQueueItem : PersistantQueueItem
+    public class FilterQueueItem : PersistentQueueItem
     {
         [Indexed]
         public DateTime CreateTime { get; set; }

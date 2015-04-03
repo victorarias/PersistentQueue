@@ -4,83 +4,178 @@ using System.Linq;
 using System.Text;
 using SQLite;
 using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace PersistentQueue
 {
-	public class Queue : IDisposable
+    public interface IPersistentQueueItem
+    {
+        long Id { get; }
+        DateTime InvisibleUntil { get; set; }
+        byte[] Message { get; set; }
+        T CastTo<T>();
+        String TableName();
+    }
+
+
+    /// <summary>
+    /// General Persistent Queue interface
+    /// </summary>
+    public interface IPersistentQueue : IDisposable
+    {
+        #region Public Properties
+
+        string Name { get; }
+
+        #endregion
+
+        void Enqueue(object obj);
+        IPersistentQueueItem Dequeue(bool remove = true, int invisibleTimeout = 30000);
+        void Invalidate(IPersistentQueueItem item, int invisibleTimeout = 30000);
+        void Delete(IPersistentQueueItem item);
+        object Peek();
+        T Peek<T>();
+        String TableName();
+    }
+
+    /// <summary>
+    /// Represents a factory that builds specific PersistentQueue implementations
+    /// </summary>
+    public interface IPersistentQueueFactory
+    {
+        /// <summary>
+        /// Creates or returns a PersistentQueue instance with default parameters for storage.
+        /// </summary>
+        IPersistentQueue Default();
+
+        /// <summary>
+        /// Creates or returns a PersistentQueue instance that is stored at given path.
+        /// </summary>
+        IPersistentQueue Create(string name);
+
+        /// <summary>
+        /// Attempts to create a new PersistentQueue instance with default parameters for storage.
+        /// If the instance was already loaded, an exception will be thrown.
+        /// </summary>
+        IPersistentQueue CreateNew();
+
+        /// <summary>
+        /// Attempts to create a new PersistentQueue instance that is stored at the given path.
+        /// If the instance was already loaded, an exception will be thrown.
+        /// </summary>
+        IPersistentQueue CreateNew(string name);
+    }
+
+    public class QueueStorageMismatchException : Exception
+    {
+        public QueueStorageMismatchException(String message) : base(message) { }
+
+        public QueueStorageMismatchException(IPersistentQueue queue, IPersistentQueueItem invalidQueueItem)
+            : base(BuildMessage(queue, invalidQueueItem))
+        {
+
+        }
+
+        private static String BuildMessage(IPersistentQueue queue, IPersistentQueueItem invalidQueueItem)
+        {
+            return String.Format("Queue Item of type {0} stores data to a table named \"{1}\". Queue of type {2} stores data to a table names \"{3}\"",
+                                 invalidQueueItem.GetType(),
+                                 invalidQueueItem.TableName(),
+                                 queue.GetType(),
+                                 queue.TableName());
+        }
+    }
+
+    /// <summary>
+    /// A class that implements a Persistent SQLite backed queue
+    /// </summary>
+    public abstract class Queue<QueueItemType> : IPersistentQueue where QueueItemType : PersistentQueueItem, new()
 	{
-		#region Private Properties
+        #region Factory
 
-		private const string defaultQueueName = "persistentQueue";
-		private SQLite.SQLiteConnection store;
-		private bool disposed = false;
+        private static Dictionary<string, IPersistentQueue> queues = new Dictionary<string, IPersistentQueue>();
 
-		#endregion
+        public abstract class PersistentQueueFactory<ConcreteType> : IPersistentQueueFactory where ConcreteType : Queue<QueueItemType>, new()
+        {
 
-		#region Public Properties
+            public IPersistentQueue Default()
+            {
+                return Create(defaultQueueName);
+            }
 
-		public string Name { get; private set; }
+            public IPersistentQueue Create(string name)
+            {
+                lock (queues)
+                {
+                    IPersistentQueue queue;
 
-		#endregion
+                    if (!queues.TryGetValue(name, out queue))
+                    {
+                        queue = new ConcreteType();
+                        ((ConcreteType)queue).Initialize(name);
+                        queues.Add(name, queue);
+                    }
 
-		#region Static
+                    return queue;
+                }
+            }
 
-		private static Dictionary<string, Queue> queues = new Dictionary<string, Queue>();
+            public IPersistentQueue CreateNew()
+            {
+                return CreateNew(defaultQueueName);
+            }
 
-		public static Queue Default
-		{
-			get
-			{
-				return Create(defaultQueueName);
-			}
-		}
+            public IPersistentQueue CreateNew(string name)
+            {
+                if (name == null)
+                {
+                    throw new ArgumentNullException("name",
+                        "CreateNew(string name) requires a non null name parameter. Consider calling CreateNew() instead if you do not want to pass in a name");
+                }
 
-		public static Queue CreateNew()
-		{
-			return CreateNew(defaultQueueName);
-		}
+                lock (queues)
+                {
+                    if (queues.ContainsKey(name))
+                    {
+                        throw new InvalidOperationException("there is already a queue with that name");
+                    }
 
-		public static Queue CreateNew(string name)
-		{
-			lock (queues)
-			{
-				if (queues.ContainsKey(name))
-					throw new InvalidOperationException("there is already a queue with that name");
+                    ConcreteType queue = new ConcreteType();
+                    queue.Initialize(name, true);
+                    queues.Add(name, queue);
 
-				var queue = new Queue(name, true);
-				queues.Add(name, queue);
-
-				return queue;
-			}
-		}
-
-		public static Queue Create(string name)
-		{
-			lock (queues)
-			{
-				Queue queue;
-
-				if (!queues.TryGetValue(name, out queue))
-				{
-					queue = new Queue(name);
-					queues.Add(name, queue);
-				}
-
-				return queue;
-			}
-		}
+                    return (IPersistentQueue)queue;
+                }
+            }
+        }
 
 		#endregion
 
-		private Queue(string name, bool reset = false)
-		{
-			if (reset && File.Exists(defaultQueueName))
-				File.Delete(defaultQueueName);
+        #region Private Properties
 
-			Initialize(name);
+        protected const string defaultQueueName = "persistentQueue";
+        protected SQLite.SQLiteConnection store;
+        protected bool disposed = false;
+
+        #endregion
+
+        #region Public Properties
+
+        public string Name { get; protected set; }
+
+        #endregion
+
+        public Queue()
+        {
+
+        }
+
+        public Queue(string name, bool reset = false)
+		{
+            Initialize(name, reset);
 		}
 
-		~Queue()
+        ~Queue()
 		{
 			if (!disposed)
 			{
@@ -88,22 +183,32 @@ namespace PersistentQueue
 			}
 		}
 
-		private void Initialize(string name)
+        protected virtual void Initialize(string name, bool reset = false)
 		{
+            if (name == null)
+            {
+                throw new ArgumentNullException("name");
+            }
+
+            if (reset && File.Exists(defaultQueueName))
+            {
+                File.Delete(defaultQueueName);
+            }
+
 			Name = name;
 			store = new SQLiteConnection(name);
-			store.CreateTable<QueueItem>();
+            store.CreateTable<QueueItemType>();
 		}
 
 		public void Enqueue(object obj)
 		{
 			lock (store)
 			{
-				store.Insert(obj.ToQueueItem());
+                store.Insert(obj.ToQueueItem<QueueItemType>());
 			}
 		}
 
-		public QueueItem Dequeue(bool remove = true, int invisibleTimeout = 30000)
+        public IPersistentQueueItem Dequeue(bool remove = true, int invisibleTimeout = 30000)
 		{
 			lock (store)
 			{
@@ -111,26 +216,47 @@ namespace PersistentQueue
 
 				if (null != item)
 				{
-					if (remove)
-						store.Delete(item);
-					else
-					{
-						item.InvisibleUntil = DateTime.Now.AddMilliseconds(invisibleTimeout);
-						store.Update(item);
-					}
+                    if (remove)
+                    {
+                        this.Delete(item);
+                    }
+                    else
+                    {
+                        this.Invalidate(item, invisibleTimeout);
+                    }
 
 					return item;
 				}
 				else
 				{
-					return null;
+					return default(QueueItemType);
 				}
 			}
 		}
 
-		public void Delete(QueueItem item)
+        public virtual void Invalidate(IPersistentQueueItem item, int invisibleTimeout = 30000)
+        {
+            if (item is QueueItemType)
+            {
+                item.InvisibleUntil = DateTime.Now.AddMilliseconds(invisibleTimeout);
+                store.Update(item);
+            }
+            else
+            {
+                throw new QueueStorageMismatchException(this, item);
+            }
+        }
+
+        public virtual void Delete(IPersistentQueueItem item)
 		{
-			store.Delete(item);
+            if (item is QueueItemType)
+            {
+                store.Delete(item);
+            }
+            else
+            {
+                throw new QueueStorageMismatchException(this, item);
+            }
 		}
 
 		public object Peek()
@@ -150,45 +276,108 @@ namespace PersistentQueue
 
 		public void Dispose()
 		{
-			if (!disposed)
-				lock (queues)
-				{
-					disposed = true;
+			if (!disposed) {
+                lock (queues)
+                {
+                    disposed = true;
 
 					queues.Remove(this.Name);
 					store.Dispose();
 
 					GC.SuppressFinalize(this);
 				}
+            }
 		}
 
-		private QueueItem GetNextItem()
+        protected QueueItemType GetNextItem()
 		{
-			return store.Table<QueueItem>()
-					.Where(a => DateTime.Now > a.InvisibleUntil)
-					.OrderBy(a => a.Id)
-					.FirstOrDefault();
+            return this.NextItemQuery().FirstOrDefault();
 		}
+
+        protected virtual TableQuery<QueueItemType> NextItemQuery()
+        {
+            return store.Table<QueueItemType>()
+                     .Where(a => DateTime.Now > a.InvisibleUntil)
+                     .OrderBy(a => a.Id);
+        }
+
+        public String TableName()
+        {
+            String name = null;
+
+            System.Attribute[] attrs = System.Attribute.GetCustomAttributes(typeof(QueueItemType));
+
+            foreach (System.Attribute attr in attrs)
+            {
+                if (attr is SQLite.TableAttribute)
+                {
+                    var a = (SQLite.TableAttribute)attr;
+                    name = a.Name;
+                    break;
+                }
+            }
+
+            return name;
+        }
 	}
 
-	public class QueueItem
-	{
-		[PrimaryKey]
-		public long Id { get; private set; }
+    [Table("PersistentQueueItem")]
+    public abstract class PersistentQueueItem : IPersistentQueueItem
+    {
+        [PrimaryKey]
+        [AutoIncrement]
+        public long Id { get; protected set; }
 
-		[Indexed]
-		public DateTime InvisibleUntil { get; set; }
+        [Indexed]
+        public DateTime InvisibleUntil { get; set; }
 
-		public byte[] Message { get; set; }
+        public byte[] Message { get; set; }
 
-		public QueueItem()
-		{
-			Id = DateTime.Now.Ticks;
-		}
+        public PersistentQueueItem() { }
 
-		public T CastTo<T>()
-		{
-			return (T)this.ToObject();
-		}
-	}
+        public T CastTo<T>()
+        {
+            return (T)this.ToObject();
+        }
+
+        public String TableName()
+        {
+            String name = null;
+
+            System.Attribute[] attrs = System.Attribute.GetCustomAttributes(this.GetType());
+
+            foreach (System.Attribute attr in attrs)
+            {
+                if (attr is SQLite.TableAttribute)
+                {
+                    var a = (SQLite.TableAttribute)attr;
+                    name = a.Name;
+                    break;
+                }
+            }
+
+            return name;
+        }
+    }
+
+    public static class Extensions
+    {
+        public static QueueItemType ToQueueItem<QueueItemType>(this object obj) where QueueItemType : PersistentQueueItem, new()
+        {
+            using (var stream = new MemoryStream())
+            {
+                new BinaryFormatter().Serialize(stream, obj);
+
+                return new QueueItemType { Message = stream.ToArray() };
+            }
+        }
+
+        public static object ToObject<QueueItemType>(this QueueItemType item) where QueueItemType : PersistentQueueItem
+        {
+            using (var stream = new MemoryStream(item.Message))
+            {
+                return new BinaryFormatter().Deserialize(stream);
+            }
+        }
+    }
 }
